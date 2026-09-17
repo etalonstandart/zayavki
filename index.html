@@ -44,6 +44,18 @@
   button[type="submit"]:active { transform: scale(0.98); background: #1eac52; }
   button[type="submit"]:disabled { background: #90a4ae; cursor: not-allowed; }
   .footer-note { text-align: center; font-size: 11px; color: #90a4ae; margin-top: 16px; line-height: 1.5; }
+
+  .offline-badge {
+    display: none;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .offline-badge.warn { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; display: block; }
+  .offline-badge.info { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; display: block; }
+
   #lockScreen { position: fixed; inset: 0; background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
   .lock-card { background: #fff; border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
   .lock-card .lock-icon { font-size: 44px; margin-bottom: 8px; }
@@ -75,6 +87,8 @@
 
 <div class="container" id="appScreen" style="display:none;">
   <h1>🔧 Заявка на счётчик</h1>
+
+  <div class="offline-badge" id="offlineBadge"></div>
 
   <form id="form" novalidate autocomplete="off">
     <div class="field">
@@ -115,11 +129,11 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- ============== СКРИПТ 1 ============== -->
+<!-- ============== СКРИПТ 1 — утилиты и геолокация ============== -->
 <script>
   const LS_KEY     = 'gas_access_code';
   const DEVICE_KEY = 'gas_device_id';
-  const NEXT_NUM_KEY = 'gas_next_number';   // локальный «запас номера»
+  const NEXT_NUM_KEY = 'gas_next_number';
 
   const INITIAL_CODES = [
     '48217','93641','27580','61934','70825',
@@ -245,8 +259,8 @@
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     if (!coords) startGeo();
-    // Подтягиваем номер заранее
     if (typeof window.warmUpNextNumber === 'function') window.warmUpNextNumber();
+    if (typeof window.syncPendingRecords === 'function') window.syncPendingRecords();
   };
   window.lockApp = function(reason) {
     document.getElementById('lockScreen').style.display = 'flex';
@@ -268,7 +282,7 @@
   })();
 </script>
 
-<!-- ============== СКРИПТ 2 — Firebase ============== -->
+<!-- ============== СКРИПТ 2 — Firebase + IndexedDB ============== -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -289,7 +303,262 @@ const db = getDatabase(fbApp);
 const { LS_KEY, DEVICE_KEY, NEXT_NUM_KEY, INITIAL_CODES } = window.gasConstants;
 const lockStatusEl = document.getElementById('lockStatus');
 const lockErrorEl  = document.getElementById('lockError');
+const offlineBadge = document.getElementById('offlineBadge');
 
+/* ============================================================
+   💾 INDEXEDDB — надёжное локальное хранилище очереди
+   ============================================================ */
+let idb = null;
+
+const idbRequest = indexedDB.open("GasZayavki_DB", 1);
+idbRequest.onupgradeneeded = (e) => {
+  const d = e.target.result;
+  if (!d.objectStoreNames.contains("pending_sync")) {
+    d.createObjectStore("pending_sync", { keyPath: "id", autoIncrement: true });
+  }
+};
+idbRequest.onsuccess = (e) => {
+  idb = e.target.result;
+  console.log('[idb] база открыта');
+  updateNetworkBadge();
+  window.syncPendingRecords();
+};
+idbRequest.onerror = (e) => {
+  console.error('[idb] ошибка открытия', e);
+};
+
+/* Кол-во записей в очереди (Promise) */
+function getIdbCount() {
+  return new Promise((resolve) => {
+    if (!idb) return resolve(0);
+    const req = idb.transaction("pending_sync", "readonly").objectStore("pending_sync").count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(0);
+  });
+}
+
+/* Добавить запись в очередь */
+function addToQueue(payload) {
+  return new Promise((resolve, reject) => {
+    if (!idb) { reject(new Error("IndexedDB не готов")); return; }
+    const tx = idb.transaction("pending_sync", "readwrite");
+    tx.objectStore("pending_sync").add({ data: payload, addedAt: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e);
+  });
+}
+
+/* Удалить запись из очереди по id */
+function deleteFromQueue(id) {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction("pending_sync", "readwrite");
+    tx.objectStore("pending_sync").delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e);
+  });
+}
+
+/* Взять все записи очереди */
+function getAllFromQueue() {
+  return new Promise((resolve) => {
+    if (!idb) return resolve([]);
+    const req = idb.transaction("pending_sync", "readonly").objectStore("pending_sync").getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => resolve([]);
+  });
+}
+
+/* ============================================================
+   🌐 ИНДИКАТОР СЕТИ
+   ============================================================ */
+async function updateNetworkBadge() {
+  const online = navigator.onLine;
+  const count = await getIdbCount();
+
+  if (online && count === 0) {
+    offlineBadge.className = 'offline-badge';
+    offlineBadge.style.display = 'none';
+    return;
+  }
+  if (online && count > 0) {
+    offlineBadge.className = 'offline-badge info';
+    offlineBadge.textContent = `📤 Отправка ${count} сохранённых заявок...`;
+    return;
+  }
+  if (count === 0) {
+    offlineBadge.className = 'offline-badge warn';
+    offlineBadge.textContent = '📴 Нет интернета. Заявки уйдут в WhatsApp, а в базу — как только появится связь.';
+  } else {
+    offlineBadge.className = 'offline-badge warn';
+    offlineBadge.textContent = `📴 Нет интернета. В очереди на отправку: ${count} заявк(и).`;
+  }
+}
+window.updateNetworkBadge = updateNetworkBadge;
+
+window.addEventListener('online', () => {
+  updateNetworkBadge();
+  window.syncPendingRecords();
+});
+window.addEventListener('offline', updateNetworkBadge);
+
+/* ============================================================
+   🔢 СЧЁТЧИК — номер заявки
+   ============================================================ */
+async function fetchAndBumpNumber() {
+  try {
+    const counterRef = ref(db, 'requests_counter');
+    const result = await runTransaction(counterRef, (current) => {
+      const n = typeof current === 'number' ? current : 0;
+      return n + 1;
+    });
+    if (result.committed) return result.snapshot.val();
+    const snap = await get(counterRef);
+    return snap.exists() ? snap.val() : 1;
+  } catch (e) {
+    console.warn('[number] ошибка:', e.message);
+    return null;
+  }
+}
+
+window.warmUpNextNumber = async function() {
+  const cached = localStorage.getItem(NEXT_NUM_KEY);
+  if (cached) return Number(cached);
+  if (!navigator.onLine) return null;
+  const num = await fetchAndBumpNumber();
+  if (num != null) {
+    localStorage.setItem(NEXT_NUM_KEY, String(num));
+  }
+  return num;
+};
+
+window.peekNextNumber = function() {
+  const cached = localStorage.getItem(NEXT_NUM_KEY);
+  return cached ? Number(cached) : null;
+};
+
+/* ============================================================
+   📤 СОХРАНЕНИЕ ЗАЯВКИ — ТОЧНО КАК В ETALON PWA
+   1) Всегда сначала кладём в IndexedDB
+   2) Потом вызываем syncPendingRecords()
+   3) syncPendingRecords отправит всё, что накопилось
+   ============================================================ */
+window.saveRequestFast = async function(payload) {
+  // Если номер не присвоен — присваиваем сейчас (если онлайн)
+  if (payload.number == null && navigator.onLine) {
+    const num = await fetchAndBumpNumber();
+    if (num != null) payload.number = num;
+  }
+
+  // Локальный резерв номера (на случай офлайна)
+  if (payload.number == null) {
+    payload.number = 'off_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  }
+
+  // 1) Кладём в IndexedDB — гарантированно
+  try {
+    await addToQueue(payload);
+    console.log('[save] заявка добавлена в очередь:', payload.number);
+  } catch (e) {
+    console.error('[save] не удалось записать в IndexedDB:', e);
+    // Крайний случай — попробуем сохранить сразу в Firebase
+    if (navigator.onLine) {
+      try {
+        await set(ref(db, `zayavki_grozny/${payload.number}`), payload);
+        localStorage.removeItem(NEXT_NUM_KEY);
+        window.warmUpNextNumber();
+        return true;
+      } catch (e2) {
+        console.error('[save] fallback провалился:', e2);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // 2) Обновляем индикатор
+  updateNetworkBadge();
+
+  // 3) Пытаемся синхронизировать
+  await window.syncPendingRecords();
+
+  // Если очередь очистилась — заявка точно ушла
+  const left = await getIdbCount();
+  return left === 0;
+};
+
+/* ============================================================
+   🔄 СИНХРОНИЗАЦИЯ ОЧЕРЕДИ С FIREBASE
+   Флаг isSyncing защищает от параллельных запусков.
+   Отправляем строго по одной записи, удаляем после успеха.
+   ============================================================ */
+let isSyncing = false;
+
+window.syncPendingRecords = async function() {
+  if (isSyncing) return;
+  if (!navigator.onLine) { updateNetworkBadge(); return; }
+  if (!idb) { console.warn('[sync] IndexedDB не готова'); return; }
+
+  isSyncing = true;
+  updateNetworkBadge();
+
+  try {
+    const records = await getAllFromQueue();
+    if (!records || records.length === 0) {
+      isSyncing = false;
+      updateNetworkBadge();
+      return;
+    }
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const payload = record.data;
+
+      // Если номер «off_...» — попробуем присвоить настоящий
+      if (typeof payload.number === 'string' && payload.number.startsWith('off_')) {
+        const fresh = await fetchAndBumpNumber();
+        if (fresh != null) payload.number = fresh;
+        // если не удалось — оставляем off-номер, всё равно сохраним
+      }
+
+      try {
+        await set(ref(db, `zayavki_grozny/${payload.number}`), payload);
+        console.log('[sync] отправлено:', payload.number);
+
+        // Удаляем из очереди только после успешной отправки
+        await deleteFromQueue(record.id);
+
+        // Если номер был «настоящий» — сбросим кэш и подтянем следующий
+        localStorage.removeItem(NEXT_NUM_KEY);
+      } catch (err) {
+        console.warn('[sync] не удалось отправить запись, стоп:', err.message);
+        break; // Прерываем цикл — сеть, похоже, отвалилась
+      }
+    }
+  } catch (e) {
+    console.error('[sync] ошибка:', e);
+  }
+
+  isSyncing = false;
+  updateNetworkBadge();
+
+  // Готовим следующий номер, если очередь пуста
+  const left = await getIdbCount();
+  if (left === 0) {
+    window.warmUpNextNumber();
+  }
+};
+
+/* Периодически пробуем отправить очередь (раз в 30 сек) */
+setInterval(async () => {
+  if (navigator.onLine) {
+    const left = await getIdbCount();
+    if (left > 0) window.syncPendingRecords();
+  }
+}, 30000);
+
+/* ============================================================
+   🔐 ДОСТУП
+   ============================================================ */
 function getDeviceId() {
   let id = localStorage.getItem(DEVICE_KEY);
   if (!id) {
@@ -311,9 +580,7 @@ async function ensureCodesExist() {
     if (snap.exists()) {
       const data = snap.val();
       for (const code of INITIAL_CODES) {
-        if (!data[code]) {
-          await set(ref(db, `access_codes/${code}`), { available: true });
-        }
+        if (!data[code]) await set(ref(db, `access_codes/${code}`), { available: true });
       }
       return;
     }
@@ -352,9 +619,17 @@ async function verifyAccessOnline(code) {
 }
 
 (async () => {
+  updateNetworkBadge();
+
   if (window.gasOfflineAccessGranted) {
     const saved = localStorage.getItem(LS_KEY);
     if (saved) verifyAccessOnline(saved);
+    window.syncPendingRecords();
+    return;
+  }
+  if (!navigator.onLine) {
+    lockStatusEl.textContent = 'Нет интернета';
+    lockErrorEl.textContent = 'Для первого входа нужен интернет';
     return;
   }
   lockStatusEl.textContent = 'Подключение...';
@@ -366,6 +641,7 @@ async function verifyAccessOnline(code) {
       localStorage.setItem(LS_KEY, existingCode);
       window.unlockApp();
     }
+    window.syncPendingRecords();
   } catch (e) {
     lockStatusEl.textContent = 'Нет связи с сервером';
     lockErrorEl.textContent = 'Для первого входа нужен интернет';
@@ -384,6 +660,7 @@ async function tryUnlock() {
 
   if (!raw) { lockErrorEl.textContent = 'Введите код'; return; }
   if (!INITIAL_CODES.includes(raw)) { lockErrorEl.textContent = 'Неверный код доступа'; return; }
+  if (!navigator.onLine) { lockErrorEl.textContent = 'Для первого входа нужен интернет'; return; }
 
   lockErrorEl.textContent = 'Проверка...';
   try {
@@ -411,78 +688,8 @@ document.getElementById('codeInput').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
 });
 
-/* ============================================================
-   🔢 СЧЁТЧИК ЗАЯВОК — с локальным «запасом» номера
-   ============================================================ */
-
-/* Получить номер из Firebase и увеличить счётчик (атомарно) */
-async function fetchAndBumpNumber() {
-  try {
-    const counterRef = ref(db, 'requests_counter');
-    const result = await runTransaction(counterRef, (current) => {
-      const n = typeof current === 'number' ? current : 0;
-      return n + 1;
-    });
-    if (result.committed) return result.snapshot.val();
-    const snap = await get(counterRef);
-    return snap.exists() ? snap.val() : 1;
-  } catch (e) {
-    console.warn('[number] ошибка:', e.message);
-    return null;
-  }
-}
-
-/* Прогреваем локальный номер заранее — чтобы тап по кнопке был мгновенным */
-window.warmUpNextNumber = async function() {
-  const cached = localStorage.getItem(NEXT_NUM_KEY);
-  if (cached) return Number(cached);   // уже есть в запасе
-
-  const num = await fetchAndBumpNumber();
-  if (num != null) {
-    localStorage.setItem(NEXT_NUM_KEY, String(num));
-  }
-  return num;
-};
-
-/* Мгновенно вернуть номер (если есть в localStorage) */
-window.peekNextNumber = function() {
-  const cached = localStorage.getItem(NEXT_NUM_KEY);
-  return cached ? Number(cached) : null;
-};
-
-/* Сохранить заявку с номером, при необходимости достать номер из Firebase */
-window.saveRequestFast = async function(payload) {
-  // Если номер уже есть в payload — сохраняем как есть
-  if (payload.number != null) {
-    try {
-      await set(ref(db, `zayavki_grozny/${payload.number}`), payload);
-      // Использованный номер убираем из запаса
-      localStorage.removeItem(NEXT_NUM_KEY);
-      // И сразу готовим следующий номер
-      window.warmUpNextNumber();
-      return true;
-    } catch (e) {
-      console.error('[firebase] saveRequestFast:', e);
-      return false;
-    }
-  }
-  // Иначе — запрашиваем номер и сохраняем
-  const num = await fetchAndBumpNumber();
-  if (num == null) return false;
-  payload.number = num;
-  try {
-    await set(ref(db, `zayavki_grozny/${num}`), payload);
-    return true;
-  } catch (e) {
-    console.error('[firebase] saveRequestFast (fallback):', e);
-    return false;
-  }
-};
-
-/* Пробуем прогреть номер сразу при загрузке страницы */
+/* Прогрев номера */
 setTimeout(() => { window.warmUpNextNumber(); }, 1500);
-
-console.log('[firebase] модуль загружен, DEVICE_ID:', DEVICE_ID);
 </script>
 
 <!-- ============== СКРИПТ 3 — Форма ============== -->
@@ -603,15 +810,12 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  /* ============================================================
-     🚀 ГЛАВНОЕ: СНАЧАЛА ФОРМИРУЕМ СООБЩЕНИЕ И ОТКРЫВАЕМ ШТОРКУ,
-     ПОТОМ ВСЁ ОСТАЛЬНОЕ — В ФОНЕ.
-     ============================================================ */
+  submitBtn.disabled = true;
 
-  // 1. Мгновенно достаём номер из локального запаса
+  /* 1. Мгновенно достаём номер из локального запаса */
   let requestNumber = window.peekNextNumber ? window.peekNextNumber() : null;
 
-  // 2. Мгновенно формируем текст — координаты, если есть; иначе без них
+  /* 2. Формируем текст — координаты из кэша (если есть) */
   const c = window.getCoords ? window.getCoords() : null;
   const header = requestNumber !== null
     ? `🔧 *Заявка №${requestNumber}*`
@@ -623,4 +827,93 @@ form.addEventListener('submit', async (e) => {
     if (phone)      { lines.push('📞 *Телефон:*');     lines.push(phone);      lines.push(''); }
     if (meterModel) { lines.push('⚙️ *Счётчик:*');     lines.push(meterModel); lines.push(''); }
     if (comment)    { lines.push('📝 *Комментарий:*'); lines.push(comment);    lines.push(''); }
-    if (coords)     { lines.push('🗺 *Локация:*');     lines.push(window.yandexLink(coords.l
+    if (coords)     { lines.push('🗺 *Локация:*');     lines.push(window.yandexLink(coords.lat, coords.lon)); lines.push(''); }
+    return lines.join('\n').trim();
+  };
+
+  /* Если координат нет — даём 2 сек на быстрый GPS */
+  let sendCoords = c;
+  if (!sendCoords) {
+    submitBtn.textContent = 'Определяем местоположение...';
+    sendCoords = await new Promise((resolve) => {
+      if (!('geolocation' in navigator)) return resolve(null);
+      const timer = setTimeout(() => resolve(null), 2000);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy });
+        },
+        () => { clearTimeout(timer); resolve(null); },
+        { enableHighAccuracy: false, timeout: 1800, maximumAge: 60000 }
+      );
+    });
+    if (sendCoords) window.setCoords(sendCoords);
+  }
+
+  const message = buildMessage(sendCoords);
+
+  /* 3. Формируем payload */
+  const payload = {
+    number: requestNumber,
+    address: address, phone: phone, meterModel: meterModel, comment: comment,
+    lat: sendCoords ? sendCoords.lat : null,
+    lon: sendCoords ? sendCoords.lon : null,
+    yandexLink: sendCoords ? window.yandexLink(sendCoords.lat, sendCoords.lon) : null,
+    deviceId: window.gasDeviceId || null,
+    createdAt: Date.now(),
+    status: 'new',
+    resolutionComment: ''
+  };
+
+  /* 4. Очищаем форму */
+  clearForm();
+
+  /* 5. Сразу открываем шторку «Поделиться» — user gesture ещё жив */
+  submitBtn.textContent = 'Открываем WhatsApp...';
+
+  let shareCompleted = false;
+  try {
+    if (files.length > 0 && navigator.canShare && navigator.share) {
+      let canShareFiles = false;
+      try { canShareFiles = navigator.canShare({ files }); } catch (err) {}
+      if (canShareFiles) {
+        await navigator.share({ files, title: `Заявка №${requestNumber ?? ''}`, text: message });
+        shareCompleted = true;
+      }
+    }
+    if (!shareCompleted && navigator.share) {
+      await navigator.share({ title: `Заявка №${requestNumber ?? ''}`, text: message });
+      shareCompleted = true;
+    }
+  } catch (err) {
+    // Отмена — не страшно, заявка всё равно уйдёт в базу
+  }
+  if (!shareCompleted) {
+    try { await navigator.clipboard.writeText(message); } catch (err) {}
+    window.open('https://wa.me/?text=' + encodeURIComponent(message), '_blank');
+  }
+
+  /* 6. В ФОНЕ — сохраняем заявку в IndexedDB + Firebase.
+        Как в Etalon PWA: сначала в локальную память, потом в Firebase. */
+  submitBtn.textContent = 'Сохранение в базе...';
+
+  window.saveRequestFast(payload).then(async (ok) => {
+    if (ok) {
+      showToast('✅ Заявка №' + (requestNumber ?? '') + ' сохранена');
+    } else {
+      showToast('📴 Заявка сохранена в телефон, отправим при связи');
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Отправить в WhatsApp';
+  });
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
