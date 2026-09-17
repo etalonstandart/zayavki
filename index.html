@@ -119,6 +119,7 @@
 <script>
   const LS_KEY     = 'gas_access_code';
   const DEVICE_KEY = 'gas_device_id';
+  const NEXT_NUM_KEY = 'gas_next_number';   // локальный «запас номера»
 
   const INITIAL_CODES = [
     '48217','93641','27580','61934','70825',
@@ -129,7 +130,7 @@
     '41570','96238','73051','58194','20687'
   ];
 
-  window.gasConstants = { LS_KEY, DEVICE_KEY, INITIAL_CODES };
+  window.gasConstants = { LS_KEY, DEVICE_KEY, NEXT_NUM_KEY, INITIAL_CODES };
 
   const geoBlock = document.getElementById('geoBlock');
   const geoText  = document.getElementById('geoText');
@@ -244,6 +245,8 @@
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     if (!coords) startGeo();
+    // Подтягиваем номер заранее
+    if (typeof window.warmUpNextNumber === 'function') window.warmUpNextNumber();
   };
   window.lockApp = function(reason) {
     document.getElementById('lockScreen').style.display = 'flex';
@@ -283,7 +286,7 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 
-const { LS_KEY, DEVICE_KEY, INITIAL_CODES } = window.gasConstants;
+const { LS_KEY, DEVICE_KEY, NEXT_NUM_KEY, INITIAL_CODES } = window.gasConstants;
 const lockStatusEl = document.getElementById('lockStatus');
 const lockErrorEl  = document.getElementById('lockError');
 
@@ -306,15 +309,10 @@ async function ensureCodesExist() {
   try {
     const snap = await get(ref(db, 'access_codes'));
     if (snap.exists()) {
-      // Обновляем список кодов на актуальный
       const data = snap.val();
-      const updates = {};
       for (const code of INITIAL_CODES) {
-        if (!data[code]) updates[code] = { available: true };
-      }
-      if (Object.keys(updates).length > 0) {
-        for (const code in updates) {
-          await set(ref(db, `access_codes/${code}`), updates[code]);
+        if (!data[code]) {
+          await set(ref(db, `access_codes/${code}`), { available: true });
         }
       }
       return;
@@ -413,7 +411,12 @@ document.getElementById('codeInput').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 5);
 });
 
-window.getNextRequestNumber = async function() {
+/* ============================================================
+   🔢 СЧЁТЧИК ЗАЯВОК — с локальным «запасом» номера
+   ============================================================ */
+
+/* Получить номер из Firebase и увеличить счётчик (атомарно) */
+async function fetchAndBumpNumber() {
   try {
     const counterRef = ref(db, 'requests_counter');
     const result = await runTransaction(counterRef, (current) => {
@@ -423,16 +426,61 @@ window.getNextRequestNumber = async function() {
     if (result.committed) return result.snapshot.val();
     const snap = await get(counterRef);
     return snap.exists() ? snap.val() : 1;
-  } catch (e) { return null; }
+  } catch (e) {
+    console.warn('[number] ошибка:', e.message);
+    return null;
+  }
+}
+
+/* Прогреваем локальный номер заранее — чтобы тап по кнопке был мгновенным */
+window.warmUpNextNumber = async function() {
+  const cached = localStorage.getItem(NEXT_NUM_KEY);
+  if (cached) return Number(cached);   // уже есть в запасе
+
+  const num = await fetchAndBumpNumber();
+  if (num != null) {
+    localStorage.setItem(NEXT_NUM_KEY, String(num));
+  }
+  return num;
 };
 
-window.saveRequest = async function(payload) {
+/* Мгновенно вернуть номер (если есть в localStorage) */
+window.peekNextNumber = function() {
+  const cached = localStorage.getItem(NEXT_NUM_KEY);
+  return cached ? Number(cached) : null;
+};
+
+/* Сохранить заявку с номером, при необходимости достать номер из Firebase */
+window.saveRequestFast = async function(payload) {
+  // Если номер уже есть в payload — сохраняем как есть
+  if (payload.number != null) {
+    try {
+      await set(ref(db, `zayavki_grozny/${payload.number}`), payload);
+      // Использованный номер убираем из запаса
+      localStorage.removeItem(NEXT_NUM_KEY);
+      // И сразу готовим следующий номер
+      window.warmUpNextNumber();
+      return true;
+    } catch (e) {
+      console.error('[firebase] saveRequestFast:', e);
+      return false;
+    }
+  }
+  // Иначе — запрашиваем номер и сохраняем
+  const num = await fetchAndBumpNumber();
+  if (num == null) return false;
+  payload.number = num;
   try {
-    const num = payload.number != null ? payload.number : Date.now();
     await set(ref(db, `zayavki_grozny/${num}`), payload);
     return true;
-  } catch (e) { console.error('[firebase] saveRequest:', e); return false; }
+  } catch (e) {
+    console.error('[firebase] saveRequestFast (fallback):', e);
+    return false;
+  }
 };
+
+/* Пробуем прогреть номер сразу при загрузке страницы */
+setTimeout(() => { window.warmUpNextNumber(); }, 1500);
 
 console.log('[firebase] модуль загружен, DEVICE_ID:', DEVICE_ID);
 </script>
@@ -555,82 +603,24 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Обновляем координаты...';
+  /* ============================================================
+     🚀 ГЛАВНОЕ: СНАЧАЛА ФОРМИРУЕМ СООБЩЕНИЕ И ОТКРЫВАЕМ ШТОРКУ,
+     ПОТОМ ВСЁ ОСТАЛЬНОЕ — В ФОНЕ.
+     ============================================================ */
 
-  setGeo('', '📍 Обновляем координаты перед отправкой...');
-  const fresh = await window.getFreshCoords();
-  if (fresh) { window.setCoords(fresh); renderGeoOk(); }
+  // 1. Мгновенно достаём номер из локального запаса
+  let requestNumber = window.peekNextNumber ? window.peekNextNumber() : null;
 
-  submitBtn.textContent = 'Получаем номер...';
-  let requestNumber = null;
-  if (typeof window.getNextRequestNumber === 'function') {
-    requestNumber = await window.getNextRequestNumber();
-  }
-
-  const c = window.getCoords();
+  // 2. Мгновенно формируем текст — координаты, если есть; иначе без них
+  const c = window.getCoords ? window.getCoords() : null;
   const header = requestNumber !== null
     ? `🔧 *Заявка №${requestNumber}*`
     : '🔧 *НОВАЯ ЗАЯВКА*';
 
-  const lines = [header, ''];
-  if (address)    { lines.push('📍 *Адрес:*');       lines.push(address);    lines.push(''); }
-  if (phone)      { lines.push('📞 *Телефон:*');     lines.push(phone);      lines.push(''); }
-  if (meterModel) { lines.push('⚙️ *Счётчик:*');     lines.push(meterModel); lines.push(''); }
-  if (comment)    { lines.push('📝 *Комментарий:*'); lines.push(comment);    lines.push(''); }
-  if (c)          { lines.push('🗺 *Локация:*');     lines.push(window.yandexLink(c.lat, c.lon)); lines.push(''); }
-  const message = lines.join('\n').trim();
-
-  submitBtn.textContent = 'Сохраняем заявку...';
-  if (typeof window.saveRequest === 'function' && requestNumber !== null) {
-    await window.saveRequest({
-      number: requestNumber,
-      address: address, phone: phone, meterModel: meterModel, comment: comment,
-      lat: c ? c.lat : null, lon: c ? c.lon : null,
-      yandexLink: c ? window.yandexLink(c.lat, c.lon) : null,
-      deviceId: window.gasDeviceId || null,
-      createdAt: Date.now(),
-      status: 'new',
-      resolutionComment: ''
-    });
-  }
-
-  submitBtn.textContent = 'Отправка...';
-  let shareCompleted = false;
-
-  if (files.length > 0 && navigator.canShare && navigator.share) {
-    let canShareFiles = false;
-    try { canShareFiles = navigator.canShare({ files }); } catch (err) {}
-    if (canShareFiles) {
-      try {
-        await navigator.share({ files, title: `Заявка №${requestNumber ?? ''}`, text: message });
-      } catch (err) {}
-      shareCompleted = true;
-    }
-  }
-  if (!shareCompleted && navigator.share) {
-    try {
-      await navigator.share({ title: `Заявка №${requestNumber ?? ''}`, text: message });
-    } catch (err) {}
-    shareCompleted = true;
-  }
-  if (!shareCompleted) {
-    try { await navigator.clipboard.writeText(message); } catch (err) {}
-    window.open('https://wa.me/?text=' + encodeURIComponent(message), '_blank');
-  }
-
-  clearForm();
-  showToast('Заявка №' + (requestNumber ?? '') + ' сохранена');
-  submitBtn.disabled = false;
-  submitBtn.textContent = 'Отправить в WhatsApp';
-});
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
-}
-</script>
-
-</body>
-</html>
+  const buildMessage = (coords) => {
+    const lines = [header, ''];
+    if (address)    { lines.push('📍 *Адрес:*');       lines.push(address);    lines.push(''); }
+    if (phone)      { lines.push('📞 *Телефон:*');     lines.push(phone);      lines.push(''); }
+    if (meterModel) { lines.push('⚙️ *Счётчик:*');     lines.push(meterModel); lines.push(''); }
+    if (comment)    { lines.push('📝 *Комментарий:*'); lines.push(comment);    lines.push(''); }
+    if (coords)     { lines.push('🗺 *Локация:*');     lines.push(window.yandexLink(coords.l
