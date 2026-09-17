@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>СТМ-население — фотоотчёт</title>
+  <meta name="theme-color" content="#2b7a4b">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="СТМ-население">
+  <link rel="apple-touch-icon" href="icon.png">
+  
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f4f6f9; padding: max(12px, env(safe-area-inset-top)) 12px 12px 12px; color: #1e293b; user-select: none; }
+    .container { max-width: 600px; margin: 0 auto; padding-bottom: 250px; position: relative; }
+    .card { background: white; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); padding: 20px 16px; margin-bottom: 16px; position: relative; }
+    h1 { font-size: 1.6rem; font-weight: 700; color: #1e4620; margin-bottom: 16px; text-align: center; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 14px; border-left: 4px solid #2b7a4b; padding-left: 10px; color: #0f2d19; }
+    
+    .form-group { margin-bottom: 16px; }
+    label.field-label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 0.85rem; color: #334155; }
+    .required::after { content: " *"; color: #ef4444; }
+    
+    .input-wrapper { display: flex; gap: 8px; align-items: center; }
+    
+    /* ВАЛИДАЦИЯ - КРАСНАЯ И ЗЕЛЕНАЯ КРОМКА */
+    input[type="text"], input[type="number"], input[type="tel"], textarea, select { flex-grow: 1; width: 100%; padding: 12px 14px; font-size: 0.95rem; border: 1px solid #ef4444; border-radius: 12px; background: #fff; font-family: inherit; -webkit-appearance: none; transition: border-color 0.3s; }
+    input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(43,122,75,0.15); }
+    input.valid, select.valid, #signatureWrapper.valid, button.valid { border-color: #22c55e !important; }
+    input.neutral-border, select.neutral-border, button.neutral-border { border-color: #cbd5e1 !important; }
+
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px; }
+
+    .scan-btn { background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; transition: background 0.2s; }
+    .scan-btn:active { background: #cbd5e1; }
+
+    button { background: #2b7a4b; color: white; border: 1px solid transparent; border-radius: 14px; padding: 13px 20px; font-size: 1rem; font-weight: 600; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; }
+    button:active { transform: scale(0.98); background: #1f5a3b; }
+    button:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; transform: none; }
+    button.danger-btn:disabled { background: #cbd5e1 !important; color: #94a3b8 !important; border-color: #cbd5e1 !important; box-shadow: none !important; }
+    
+    button.action-btn-outline { background: transparent; color: #334155; border: 1px solid #cbd5e1; box-shadow: none; font-weight: 600; }
+    button.action-btn-outline:active { background: #f8fafc; }
+    button.action-btn-danger { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; box-shadow: none; font-weight: 600; }
+    button.action-btn-danger:active { background: #fee2e2; }
+    
+    button.secondary { background: #e2e8f0; color: #334155; }
+    button.share-btn { background: #2563eb; margin-top: 4px; }
+    button.share-btn:active { background: #1d4ed8; }
+    button.danger-btn { background: #ef4444; color: white; }
+    button.danger-btn:active { background: #dc2626; }
+
+    .instruction-box { background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 14px; padding: 14px; margin-top: 12px; color: #0369a1; font-size: 0.95rem; line-height: 1.4; }
+    
+    .photo-grid { display: flex; flex-direction: column; gap: 12px; }
+    .photo-item { background: #f8fafc; border-radius: 14px; padding: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px; transition: opacity 0.3s; }
+    .photo-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .photo-title { font-weight: 500; font-size: 0.9rem; color: #1e293b; line-height: 1.3; }
+    .photo-meta { font-size: 0.7rem; color: #64748b; margin-top: 3px; }
+    .media-row { display: flex; flex-direction: row; gap: 10px; overflow-x: auto; padding: 4px 2px; -webkit-overflow-scrolling: touch; }
+    .photo-container { position: relative; width: 60px; height: 60px; flex-shrink: 0; }
+    .thumbnail { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid #cbd5e1; }
+    .delete-btn { position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; border: 1px solid white; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); padding: 0; }
+    
+    .add-photo-placeholder { width: 60px; height: 60px; border: 1px dashed #ef4444; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.65rem; color: #ef4444; font-weight: 500; background: #fff; cursor: pointer; flex-shrink: 0; transition: border-color 0.3s, color 0.3s; }
+    .add-photo-placeholder.has-photos { border: 1px dashed #22c55e !important; color: #22c55e !important; }
+    .add-photo-placeholder.optional { border: 1px dashed #cbd5e1 !important; color: #64748b !important; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; overflow: hidden; }
+    .modal-close { position: absolute; top: max(20px, env(safe-area-inset-top)); right: 20px; width: 40px; height: 40px; background: rgba(255,255,255,0.2); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 1010; }
+    .modal-wrapper { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transition: transform 0.1s ease-out; }
+    .modal-img { max-width: 95%; max-height: 85%; object-fit: contain; pointer-events: none; }
+    
+    #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+    #scannerModalClose { position: absolute; top: max(20px, env(safe-area-inset-top)); right: 20px; width: 40px; height: 40px; background: rgba(255,255,255,0.2); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 2010; cursor: pointer; }
+    #reader { width: 100%; max-width: 500px; background: #000; border-radius: 12px; overflow: hidden; }
+    .scanner-tip { color: white; margin-top: 20px; font-size: 0.95rem; text-align: center; padding: 0 20px; line-height: 1.4; }
+
+    .hidden { display: none !important; }
+    .geo-status-badge { display: inline-block; padding: 2px 6px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
+    .geo-searching { background: #fef3c7; color: #d97706; }
+    .geo-success { background: #dcfce7; color: #15803d; }
+    .geo-error { background: #fee2e2; color: #b91c1c; }
+    
+    .archive-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; transition: padding-bottom 0.3s; }
+    .archive-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; transition: background 0.2s; position: relative; }
+    .archive-item.selected { background: #dbeafe; border-color: #3b82f6; }
+    .archive-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: white; cursor: pointer; }
+    .archive-item.selected .archive-checkbox { background: #3b82f6; border-color: #3b82f6; }
+    .archive-item.selected .archive-checkbox::after { content: "✓"; color: white; font-weight: bold; font-size: 14px; }
+    .archive-info { flex-grow: 1; overflow: hidden; }
+    .archive-name { font-weight: 600; font-size: 0.95rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .multi-action-bar-wrapper {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 600px;
+      background: white; padding: 12px 16px max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      z-index: 100; display: flex; flex-direction: column; gap: 10px; border-top-left-radius: 20px; border-top-right-radius: 20px;
+    }
+    .action-row { display: flex; gap: 10px; }
+    .action-row button { padding: 10px 4px; margin: 0; font-size: 0.95rem; border-radius: 10px; flex: 1; white-space: nowrap; height: 42px; }
+
+    footer { text-align: center; font-size: 0.75rem; color: #94a3b8; margin-top: 20px; }
+
+    .radio-wrapper { border: 1px solid #ef4444; border-radius: 12px; padding: 4px; transition: border-color 0.3s; }
+    .radio-wrapper.valid { border-color: #22c55e !important; }
+    .radio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .radio-card { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #cbd5e1; padding: 10px 8px; border-radius: 8px; font-size: 0.9rem; color: #334155; cursor: pointer; }
+    .radio-card input[type="radio"] { width: 18px; height: 18px; accent-color: #2b7a4b; flex-shrink: 0; margin: 0; }
+
+    .dynamic-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .dynamic-input-row input { flex-grow: 1; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; }
+    .model-select-btn { flex-shrink: 0; width: 140px; padding: 8px; border-radius: 10px; font-size: 0.85rem; background-color: #f8fafc; color: #334155; border: 1px solid #cbd5e1; box-shadow: none; display: flex; justify-content: space-between; align-items: center; }
+    .model-select-btn span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .no-account-label { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.9rem; flex-shrink: 0; background: #f1f5f9; padding: 0 12px; border-radius: 10px; border: 1px solid #cbd5e1; cursor:pointer; transition: opacity 0.2s; }
+    .no-account-label input { width: 18px; height: 18px; margin: 0; accent-color: #2b7a4b; }
+    .scan-mini-btn { flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="app">
+  
+  <div id="formScreen">
+    
+    <div class="card" style="padding-bottom: 12px;">
+      <h1 style="margin-bottom: 0;">СТМ-население</h1>
+    </div>
+
+    <div class="card">
+      <h2>▶ Объект установки</h2>
+      
+      <div class="form-group">
+        <label class="field-label required">Город/Городской округ</label>
+        <select id="cityName">
+          <option value="" disabled selected>Выберите город...</option>
+          <option value="Грозный / Грозненский р-н">Грозный / Грозненский р-н</option>
+          <option value="Гудермес / Гудермесский р-н">Гудермес / Гудермесский р-н</option>
+          <option value="Курчалой / Курчалоевский р-н">Курчалой / Курчалоевский р-н</option>
+          <option value="Шали / Шалинский р-н">Шали / Шалинский р-н</option>
+          <option value="Урус-Мартан / Урус-Мартановский р-н">Урус-Мартан / Урус-Мартановский р-н</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label required">Адрес объекта</label>
+        <input type="text" id="address" placeholder="г. Москва, ул. Ленина, д. 15">
+      </div>
+      
+      <div class="form-group">
+        <label class="field-label required">Расположение счетчика</label>
+        <div id="uirgWrapper" class="radio-wrapper">
+          <div class="radio-grid">
+            <label class="radio-card"><input type="radio" name="uirg" value="Улица"> Улица</label>
+            <label class="radio-card"><input type="radio" name="uirg" value="Котельная"> Котельная</label>
+            <label class="radio-card"><input type="radio" name="uirg" value="Под навесом"> Под навесом</label>
+            <label class="radio-card"><input type="radio" name="uirg" value="В помещении"> В помещении</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>▶ Данные монтажа</h2>
+      
+      <div class="form-group">
+        <label class="field-label required">ФИО монтажника</label>
+        <input type="text" id="installerName" placeholder="Иванов И.И.">
+      </div>
+
+      <div class="form-group">
+        <label class="field-label required">Модель нового счетчика</label>
+        <select id="meterModel">
+          <option value="" disabled selected>Выберите модель...</option>
+          <option value="СМТ-Смарт G6">СМТ-Смарт G6</option>
+          <option value="Миртек G4">Миртек G4</option>
+          <option value="Миртек G6">Миртек G6</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>▶ Потребитель</h2>
+
+      <div class="form-group">
+        <label class="field-label required">ФИО потребителя</label>
+        <input type="text" id="consumerName" placeholder="Пример: Петров П.П.">
+      </div>
+      
+      <div class="form-group">
+        <label class="field-label required">Лицевой счет</label>
+        <div class="dynamic-input-row">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="accountNumber" placeholder="Пример: 123456789">
+          <label class="no-account-label">
+            <input type="checkbox" id="noAccountCb"> Нет
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label required">Подпись потребителя</label>
+        <div id="signatureWrapper" style="padding: 12px; text-align: center; border: 1px solid #ef4444; border-radius: 12px; background: transparent; transition: border-color 0.3s; margin-bottom: 8px;">
+          <span id="signatureStatusText" style="display:block; margin-bottom: 8px; color: #ef4444; font-weight: 600;">Подпись отсутствует</span>
+          <img id="signaturePreview" style="width: 100%; max-height: 100px; object-fit: contain; margin-bottom: 12px; display: none;" />
+          <button type="button" id="openSignatureBtn" class="secondary" style="font-size: 0.9rem; padding: 10px;">✍️ Открыть поле для подписи</button>
+        </div>
+      </div>
+    </div>
+    
+    <div style="padding: 0 4px;">
+      <button id="startReportBtn" style="margin-bottom: 12px;">▶ Начать фотоотчёт</button>
+      <button id="openPostponedBtn" class="secondary" style="margin-bottom: 12px; display: none; background: #fefce8; border: 1px solid #eab308; color: #a16207;">▶ Отложенные отчеты (<span id="postponedCount">0</span>)</button>
+      <button id="openArchivesBtn" class="secondary">▶ Сохраненные архивы</button>
+    </div>
+
+  </div>
+
+  <div id="checklistScreen" class="hidden">
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 600; font-size: 0.95rem; color: #334155;">Статус GPS:</span>
+      <span id="displayCoords" class="geo-status-badge geo-searching" style="margin-top: 0;">Ожидание спутников...</span>
+    </div>
+    
+    <div id="syncStatus" class="instruction-box hidden" style="background: #fef3c7; border-color: #fde68a; color: #b45309; margin-bottom: 16px;">
+      Внимание: Нет сети. Отчет будет сохранен локально и отправлен в базу позже.
+    </div>
+
+    <div id="mandatoryListContainer"></div>
+
+    <div class="card">
+      <h2 style="font-size: 0.95rem; margin-bottom: 10px;">▶ Комментарий (необязательно)</h2>
+      <textarea id="reportComment" rows="3" placeholder="Дополнительная информация, особенности монтажа..." style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.9rem; resize: vertical;"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="flex-btns" style="display: flex; flex-direction: column; gap: 12px;">
+        <button id="generateReportBtn" disabled>Сформировать архив</button>
+        
+        <div id="manualSendInstructions" class="instruction-box hidden">
+          <strong>✓ Архив сохранен!</strong><br>
+          <span id="savedFileNameSpan" style="font-size:0.85rem; color:#475569;"></span>
+        </div>
+
+        <button id="shareTextBtn" class="share-btn hidden">✉️ Отправить сейчас</button>
+        <button id="postponeReportBtn" class="secondary" style="border: 1px solid #eab308; color: #a16207; background: #fefce8;">Отложить отчет</button>
+        <button id="goBackBtn" class="action-btn-outline">Назад</button>
+        <button id="resetAllBtn" class="action-btn-danger">Завершить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="archiveScreen" class="hidden">
+    <div class="card">
+      <h2>▶ Сохраненные архивы</h2>
+      <div id="archiveListContainer" class="archive-list"></div>
+      <button id="backFromArchivesBtn" class="secondary" style="margin-top: 16px;">⬅ Назад</button>
+    </div>
+  </div>
+
+  <div id="postponedScreen" class="hidden">
+    <div class="card">
+      <h2>▶ Отложенные отчеты</h2>
+      <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">Выберите отчет, чтобы продолжить работу с ним.</div>
+      <div id="postponedListContainer" class="archive-list"></div>
+      <button id="backFromPostponedBtn" class="secondary" style="margin-top: 16px;">⬅ Назад</button>
+    </div>
+  </div>
+
+  <div id="multiActionBar" class="multi-action-bar-wrapper hidden">
+    <div class="action-row">
+      <button id="selectAllBtn" class="secondary" style="background:#f1f5f9; color:#475569;">Выделить все</button>
+      <button id="deselectAllBtn" class="secondary" style="background:#f1f5f9; color:#475569;">Снять все</button>
+    </div>
+    <div class="action-row">
+      <button id="multiSendBtn" class="share-btn">Отправить</button>
+      <button id="multiDeleteBtn" class="danger-btn">Удалить</button>
+    </div>
+  </div>
+
+  <footer>iPhone | Версия 2.6.0 (stab)</footer>
+</div>
+
+<div id="photoModal" class="modal">
+  <div class="modal-close" id="modalClose">&times;</div>
+  <div class="modal-wrapper" id="modalWrapper"><img src="" class="modal-img" id="modalImg" alt="Просмотр"></div>
+</div>
+
+<div id="scannerModal">
+  <div id="scannerModalClose">&times;</div>
+  <div id="reader"></div>
+  <button id="torchBtn" class="secondary" style="margin-top: 15px; width: 100%; max-width: 500px; padding: 12px 20px; font-size: 1rem; border-radius: 12px;">🔦 Вкл/Выкл фонарик</button>
+  <div class="scanner-tip">Держите телефон на расстоянии 15–20 см от кода.<br>Приложение само приблизит изображение для лучшего фокуса.</div>
+</div>
+
+<div id="signatureModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; padding: 16px; flex-direction: column;">
+  <div style="background: white; width: 100%; max-width: 500px; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+    <h2 style="text-align: center; margin: 0; font-size: 1.2rem;">Поставьте подпись</h2>
+    <div style="border: 2px solid #cbd5e1; border-radius: 12px; touch-action: none; background: #fff; overflow: hidden; position: relative;" id="canvasContainer">
+      <canvas id="signatureCanvas" style="width: 100%; height: 450px; display: block;"></canvas>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button type="button" id="clearSignatureBtn" class="danger-btn" style="flex: 1; padding: 12px; font-size: 0.95rem;">Очистить</button>
+      <button type="button" id="saveSignatureBtn" style="flex: 1; padding: 12px; font-size: 0.95rem;">✅ Сохранить</button>
+    </div>
+    <button type="button" id="closeSignatureModalBtn" class="secondary" style="padding: 12px; font-size: 0.95rem;">Отмена</button>
+  </div>
+</div>
+
+<div id="confirmFinishModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 5000; justify-content: center; align-items: center; padding: 16px;">
+  <div style="background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+    <h3 style="margin: 0 0 20px 0; font-size: 1.2rem; color: #1e293b;">Завершить?</h3>
+    <div style="display: flex; gap: 12px;">
+      <button id="confirmFinishBtn" class="danger-btn" style="flex: 1; padding: 12px; font-size: 0.95rem; margin: 0;">Завершить</button>
+      <button id="cancelFinishBtn" class="secondary" style="flex: 1; padding: 12px; font-size: 0.95rem; margin: 0;">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div id="modelSearchModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 6000; justify-content: center; align-items: center; padding: 16px; flex-direction: column;">
+  <div style="background: white; width: 100%; max-width: 500px; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 80vh;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="margin: 0; font-size: 1.2rem; color: #1e293b;">Выберите модель</h2>
+      <div id="closeModelSearchBtn" style="font-size: 1.8rem; color: #64748b; cursor: pointer; line-height: 1; padding: 0 8px;">&times;</div>
+    </div>
+    <input type="text" id="modelSearchInput" placeholder="🔍 Поиск модели..." style="padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1rem; width: 100%;">
+    <div id="modelListContainer" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 6px;"></div>
+  </div>
+</div>
+
+<input type="file" id="globalFileInput" accept="image/*" multiple class="hidden">
+
+<script>
+  function safeGetLocal(key) { try { return localStorage.getItem(key); } catch(e) { return null; } }
+  function safeSetLocal(key, value) { try { localStorage.setItem(key, value); } catch(e) { console.warn("localStorage недоступен"); } }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      console.log('PWA Offline Ready');
+      reg.update();
+    });
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+  }
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCofoBIWqUX_P8pQUIKKbitEG2GTbXT7Ak",
+    authDomain: "botstm100.firebaseapp.com",
+    databaseURL: "https://botstm100-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "botstm100",
+    storageBucket: "botstm100.firebasestorage.app",
+    messagingSenderId: "462080340216",
+    appId: "1:462080340216:web:c452983a1501f0bf170b0d"
+  };
+
+  let fbDb = null;
+  function initFirebase() {
+    if (typeof firebase !== 'undefined') {
+      firebase.initializeApp(firebaseConfig);
+      fbDb = firebase.database();
+      fbDb.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+          syncPendingRecords();
+        }
+      });
+      syncPendingRecords();
+    }
+  }
+
+  // Флаг для блокировки параллельных отправок
+  let isSyncing = false;
+  
+  function syncPendingRecords() {
+    if (!navigator.onLine || !db || !fbDb || isSyncing) return;
+    
+    // Включаем "замок", чтобы заблокировать параллельные вызовы
+    isSyncing = true; 
+    
+    db.transaction("pending_sync", "readonly").objectStore("pending_sync").getAll().onsuccess = async (e) => {
+      const records = e.target.result;
+      if (!records || records.length === 0) {
+          isSyncing = false; // Отключаем замок, если нечего отправлять
+          return;
+      }
+      
+      // Асинхронно и строго по очереди отправляем данные
+      for (let i = 0; i < records.length; i++) {
+          const record = records[i];
+          try {
+              await fbDb.ref('bot_installations').push(record.data);
+              // Дожидаемся успешного удаления из памяти, прежде чем переходить к следующему
+              await new Promise((resolve, reject) => {
+                  const req = db.transaction("pending_sync", "readwrite").objectStore("pending_sync").delete(record.id);
+                  req.onsuccess = resolve;
+                  req.onerror = reject;
+              });
+          } catch (err) {
+              console.log("Firebase sync err", err);
+              break; // Прерываем цикл, если сеть отвалилась. При появлении интернета процесс начнется заново для оставшихся
+          }
+      }
+      
+      // Снимаем замок после завершения цикла
+      isSyncing = false;
+    };
+  }
+
+  function uint8ToBase64(u8Arr) {
+    let CHUNK_SIZE = 8192; 
+    let index = 0;
+    let length = u8Arr.length;
+    let result = '';
+    let slice;
+    while (index < length) {
+      slice = u8Arr.subarray(index, Math.min(index + CHUNK_SIZE, length));
+      result += String.fromCharCode.apply(null, slice);
+      index += CHUNK_SIZE;
+    }
+    return btoa(result);
+  }
+
+  function base64ToUint8(base64) {
+    let binary_string = window.atob(base64);
+    let len = binary_string.length;
+    let bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  let db;
+  const dbRequest = indexedDB.open("EtalonPWA_DB", 5);
+  dbRequest.onupgradeneeded = (e) => {
+    const database = e.target.result;
+    if (!database.objectStoreNames.contains("archives")) { database.createObjectStore("archives", { keyPath: "name" }); }
+    if (!database.objectStoreNames.contains("drafts")) { database.createObjectStore("drafts", { keyPath: "id" }); }
+    if (!database.objectStoreNames.contains("pending_sync")) { database.createObjectStore("pending_sync", { keyPath: "id", autoIncrement: true }); }
+  };
+  dbRequest.onsuccess = (e) => { db = e.target.result; checkDraft(); updatePostponedCount(); };
+  dbRequest.onerror = (e) => console.error("IndexedDB error", e);
+
+  const mandatoryConfig = [
+    { title: "▶ Общий вид объекта (здания)", prefix: "01_building" },
+    { title: "▶ Газопровод издалека", prefix: "02_place_before" },
+    { title: "▶ Общий вид старого счетчика", prefix: "03_old_meter_view", hasOldModelInput: true }, 
+    { title: "▶ Серийный № и показания старого", prefix: "04_old_meter_serial", hasOldSerialAndReadings: true }, 
+    { title: "▶ Пломба заводская 2-3 фото", prefix: "04_1_factory_seal" },
+    { title: "▶ Пломба контролера старого", prefix: "05_old_seal_controller", hasInput: true }, 
+    { title: "▶ Направление старого счетчика", prefix: "06_old_gas_direction" },
+    { title: "▶ Общий вид нового счётчика", prefix: "07_new_meter_view" },
+    { title: "▶ Серийный № нового", prefix: "08_new_meter_serial", hasSerialInput: true }, 
+    { title: "▶ Показания нового", prefix: "09_new_meter_readings" },
+    { title: "▶ Направление нового счетчика", prefix: "10_new_gas_direction", hasDirectionInput: true }, 
+    { title: "▶ Пломба нового счетчика", prefix: "11_new_seal" },
+    { title: "▶ Паспорт, отметка, SIM", prefix: "12_passport_sim", hasSimInput: true },
+    { title: "▶ Счетчик с коробом", prefix: "07_1_meter_with_box", conditionalMandatory: true }
+  ];
+
+  let state = { 
+    cityName: '', address: '', uirgLocation: '', installerName: '', serialNumber: '', meterModel: '', 
+    consumerName: '', accountNumber: '', signatureDataUrl: '',
+    controllerSeal: '',
+    oldMeterCount: 1,
+    oldMeterModel: '', oldMeterSerial: '', oldMeterReadings: '', 
+    oldMeterModel2: '', oldMeterSerial2: '', oldMeterReadings2: '', controllerSeal2: '',
+    oldMeterModel3: '', oldMeterSerial3: '', oldMeterReadings3: '', controllerSeal3: '',
+    newGasDirection: '', simCardNumber: '',
+    noOldMeter: false, comment: '',
+    coordinates: null, creationDate: null, gpsLocked: false,
+    photos: Array.from({ length: mandatoryConfig.length }, () => []), 
+    photos2: Array.from({ length: mandatoryConfig.length }, () => []), 
+    photos3: Array.from({ length: mandatoryConfig.length }, () => []), 
+    currentActiveIndex: null, currentActiveMeter: 1
+  };
+  let currentZipName = "";
+  let watchId = null; let gpsTimeoutId = null;
+
+  const formScreen = document.getElementById('formScreen');
+  const checklistScreen = document.getElementById('checklistScreen');
+  const archiveScreen = document.getElementById('archiveScreen');
+  const mandatoryListContainer = document.getElementById('mandatoryListContainer');
+  const globalFileInput = document.getElementById('globalFileInput');
+  const generateBtn = document.getElementById('generateReportBtn');
+  const shareTextBtn = document.getElementById('shareTextBtn');
+  const displayCoords = document.getElementById('displayCoords');
+  const manualSendInstructions = document.getElementById('manualSendInstructions');
+  const savedFileNameSpan = document.getElementById('savedFileNameSpan');
+  const archiveListContainer = document.getElementById('archiveListContainer');
+  const multiActionBar = document.getElementById('multiActionBar');
+  const syncStatus = document.getElementById('syncStatus');
+
+  function updateSignaturePreview() {
+    const preview = document.getElementById('signaturePreview');
+    const statusText = document.getElementById('signatureStatusText');
+    if(preview && statusText) {
+        if (state.signatureDataUrl) {
+            preview.src = state.signatureDataUrl;
+            preview.style.display = 'block';
+            statusText.innerText = 'Подпись сохранена';
+            statusText.style.color = '#15803d'; 
+        } else {
+            preview.src = '';
+            preview.style.display = 'none';
+            statusText.innerText = 'Подпись отсутствует';
+            statusText.style.color = '#ef4444'; 
+        }
+    }
+  }
+
+  function updateMainValidation() {
+    ['address', 'installerName', 'consumerName', 'accountNumber'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.classList.toggle('valid', state[id] && state[id].trim() !== '');
+    });
+    const cName = document.getElementById('cityName'); if(cName) cName.classList.toggle('valid', state.cityName !== '');
+    const mModel = document.getElementById('meterModel'); if(mModel) mModel.classList.toggle('valid', state.meterModel !== '');
+    const uirgGrp = document.getElementById('uirgWrapper'); if (uirgGrp) uirgGrp.classList.toggle('valid', state.uirgLocation !== '');
+    const sigWrap = document.getElementById('signatureWrapper');
+    if(sigWrap) {
+      sigWrap.classList.toggle('valid', !!state.signatureDataUrl);
+      updateSignaturePreview();
+    }
+  }
+
+  const sigCanvas = document.getElementById('signatureCanvas');
+  const sigCtx = sigCanvas.getContext('2d', { willReadFrequently: true });
+  let isDrawingSig = false;
+
+  function initSignatureCanvas() {
+    const container = document.getElementById('canvasContainer');
+    sigCanvas.width = container.clientWidth || (window.innerWidth - 68);
+    sigCanvas.height = 450; 
+    sigCtx.lineWidth = 3; 
+    sigCtx.strokeStyle = '#1565C0'; 
+    sigCtx.lineCap = 'round'; 
+    sigCtx.lineJoin = 'round'; 
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    if (state.signatureDataUrl) { 
+      const img = new Image(); 
+      img.onload = () => sigCtx.drawImage(img, 0, 0); 
+      img.src = state.signatureDataUrl; 
+    }
+  }
+
+  function getSigPos(e) { const rect = sigCanvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; return { x: clientX - rect.left, y: clientY - rect.top }; }
+  function startSig(e) { e.preventDefault(); isDrawingSig = true; const pos = getSigPos(e); sigCtx.beginPath(); sigCtx.moveTo(pos.x, pos.y); }
+  function drawSig(e) { e.preventDefault(); if (!isDrawingSig) return; const pos = getSigPos(e); sigCtx.lineTo(pos.x, pos.y); sigCtx.stroke(); }
+  function stopSig(e) { if (e) e.preventDefault(); if (isDrawingSig) { isDrawingSig = false; } }
+
+  sigCanvas.addEventListener('mousedown', startSig); sigCanvas.addEventListener('mousemove', drawSig); sigCanvas.addEventListener('mouseup', stopSig); sigCanvas.addEventListener('mouseout', stopSig);
+  sigCanvas.addEventListener('touchstart', startSig, { passive: false }); sigCanvas.addEventListener('touchmove', drawSig, { passive: false }); sigCanvas.addEventListener('touchend', stopSig, { passive: false }); sigCanvas.addEventListener('touchcancel', stopSig, { passive: false });
+
+  document.getElementById('openSignatureBtn').addEventListener('click', () => {
+    document.getElementById('signatureModal').style.display = 'flex';
+    setTimeout(initSignatureCanvas, 50);
+  });
+
+  document.getElementById('closeSignatureModalBtn').addEventListener('click', () => {
+    document.getElementById('signatureModal').style.display = 'none';
+  });
+
+  document.getElementById('clearSignatureBtn').addEventListener('click', () => { 
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); 
+  });
+
+  document.getElementById('saveSignatureBtn').addEventListener('click', () => {
+    if (isSignatureEmpty()) {
+        state.signatureDataUrl = '';
+    } else {
+        state.signatureDataUrl = sigCanvas.toDataURL('image/png');
+    }
+    saveDraft();
+    updateMainValidation();
+    document.getElementById('signatureModal').style.display = 'none';
+  });
+
+  function isSignatureEmpty() {
+    const imgData = sigCtx.getImageData(0, 0, sigCanvas.width, sigCanvas.height);
+    for (let i = 3; i < imgData.data.length; i += 4) { if (imgData.data[i] !== 0) return false; } return true;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedName = safeGetLocal('installerName'); 
+    if (savedName) document.getElementById('installerName').value = savedName;
+    updateMainValidation();
+  });
+  window.addEventListener('resize', () => {
+    if(document.getElementById('signatureModal').style.display === 'flex') {
+      initSignatureCanvas();
+    }
+  });
+
+  function formatDateTime(isoString) { if (!isoString) return '—'; const d = new Date(isoString); return d.toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
+  function dataURItoUint8Array(dataURI) { const base64 = dataURI.split(',')[1]; const binary_string = window.atob(base64); const len = binary_string.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binary_string.charCodeAt(i); } return bytes; }
+
+  function saveDraft() {
+    if (!db) return;
+    const draftState = {
+      cityName: state.cityName, address: state.address, uirgLocation: state.uirgLocation, installerName: state.installerName, serialNumber: state.serialNumber, meterModel: state.meterModel,
+      consumerName: state.consumerName, accountNumber: state.accountNumber, signatureDataUrl: state.signatureDataUrl,
+      controllerSeal: state.controllerSeal,
+      oldMeterCount: state.oldMeterCount,
+      oldMeterModel: state.oldMeterModel, oldMeterSerial: state.oldMeterSerial, oldMeterReadings: state.oldMeterReadings, 
+      oldMeterModel2: state.oldMeterModel2, oldMeterSerial2: state.oldMeterSerial2, oldMeterReadings2: state.oldMeterReadings2, controllerSeal2: state.controllerSeal2,
+      oldMeterModel3: state.oldMeterModel3, oldMeterSerial3: state.oldMeterSerial3, oldMeterReadings3: state.oldMeterReadings3, controllerSeal3: state.controllerSeal3,
+      newGasDirection: state.newGasDirection, simCardNumber: state.simCardNumber,
+      noOldMeter: state.noOldMeter, comment: state.comment,
+      coordinates: state.coordinates, creationDate: state.creationDate, gpsLocked: state.gpsLocked, 
+      photos: state.photos, photos2: state.photos2, photos3: state.photos3
+    };
+    db.transaction("drafts", "readwrite").objectStore("drafts").put({ id: "current", data: draftState });
+  }
+
+  function clearDraft() { if (db) { db.transaction("drafts", "readwrite").objectStore("drafts").delete("current"); } }
+
+  function checkDraft() {
+    if (!db) return;
+    const req = db.transaction("drafts", "readonly").objectStore("drafts").get("current");
+    req.onsuccess = (e) => {
+      const result = e.target.result;
+      if (result && result.data) {
+        const d = result.data;
+        state.cityName = d.cityName || ''; state.address = d.address || ''; state.uirgLocation = d.uirgLocation || ''; state.installerName = d.installerName || ''; state.serialNumber = d.serialNumber || ''; state.meterModel = d.meterModel || ''; state.consumerName = d.consumerName || ''; state.accountNumber = d.accountNumber || ''; state.controllerSeal = d.controllerSeal || ''; 
+        state.oldMeterCount = d.oldMeterCount || 1;
+        state.oldMeterModel = d.oldMeterModel || ''; state.oldMeterSerial = d.oldMeterSerial || ''; state.oldMeterReadings = d.oldMeterReadings || '';
+        state.oldMeterModel2 = d.oldMeterModel2 || ''; state.oldMeterSerial2 = d.oldMeterSerial2 || ''; state.oldMeterReadings2 = d.oldMeterReadings2 || ''; state.controllerSeal2 = d.controllerSeal2 || '';
+        state.oldMeterModel3 = d.oldMeterModel3 || ''; state.oldMeterSerial3 = d.oldMeterSerial3 || ''; state.oldMeterReadings3 = d.oldMeterReadings3 || ''; state.controllerSeal3 = d.controllerSeal3 || '';
+        state.newGasDirection = d.newGasDirection || ''; state.simCardNumber = d.simCardNumber || ''; state.signatureDataUrl = d.signatureDataUrl || ''; state.noOldMeter = d.noOldMeter || false; state.comment = d.comment || ''; state.coordinates = d.coordinates || null; state.creationDate = d.creationDate || null; state.gpsLocked = d.gpsLocked || false;
+        
+        if (d.photos) { state.photos = d.photos; while (state.photos.length < mandatoryConfig.length) { state.photos.push([]); } }
+        state.photos2 = d.photos2 || Array.from({ length: mandatoryConfig.length }, () => []);
+        state.photos3 = d.photos3 || Array.from({ length: mandatoryConfig.length }, () => []);
+        
+        document.getElementById('cityName').value = state.cityName; document.getElementById('address').value = state.address; document.getElementById('installerName').value = state.installerName; document.getElementById('meterModel').value = state.meterModel; document.getElementById('consumerName').value = state.consumerName; document.getElementById('accountNumber').value = state.accountNumber; document.getElementById('reportComment').value = state.comment;
+        if (state.accountNumber === "Нет") document.getElementById('noAccountCb').checked = true;
+        if (state.uirgLocation) { const radio = document.querySelector(`input[name="uirg"][value="${state.uirgLocation}"]`); if (radio) radio.checked = true; }
+        
+        updateMainValidation();
+        if (state.creationDate) {
+          formScreen.classList.add('hidden'); checklistScreen.classList.remove('hidden');
+          renderChecklist();
+          if (!state.gpsLocked) { startActiveGeoSearch(); } else if (state.coordinates && !state.coordinates.error) { displayCoords.className = "geo-status-badge geo-success"; displayCoords.innerText = `${state.coordinates.lat.toFixed(6)}, ${state.coordinates.lng.toFixed(6)} (~${Math.round(state.coordinates.acc)}м) - Зафиксировано`; } else { displayCoords.className = "geo-status-badge geo-error"; displayCoords.innerText = "Координаты не зафиксированы"; }
+        }
+      }
+    };
+  }
+
+  function updatePostponedCount() {
+    if (!db) return;
+    const req = db.transaction("drafts", "readonly").objectStore("drafts").getAllKeys();
+    req.onsuccess = (e) => {
+        const keys = e.target.result;
+        const postponedKeys = keys.filter(k => k.toString().startsWith("postponed_"));
+        const btn = document.getElementById('openPostponedBtn');
+        if (postponedKeys.length > 0) {
+            btn.style.display = 'block';
+            document.getElementById('postponedCount').innerText = postponedKeys.length;
+        } else {
+            btn.style.display = 'none';
+        }
+    };
+  }
+
+  function startActiveGeoSearch() {
+    if (state.gpsLocked) return;
+    if (!navigator.geolocation) { state.coordinates = { error: "GPS недоступен" }; displayCoords.className = "geo-status-badge geo-error"; displayCoords.innerText = "GPS недоступен"; saveDraft(); return; }
+    displayCoords.className = "geo-status-badge geo-searching"; displayCoords.innerText = "Ожидание спутников (20 сек)...";
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId); if (gpsTimeoutId !== null) clearTimeout(gpsTimeoutId);
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => { state.coordinates = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy }; displayCoords.className = "geo-status-badge geo-searching"; displayCoords.innerText = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)} (~${Math.round(pos.coords.accuracy)}м) - Идет фиксация...`; saveDraft(); },
+      (err) => { if (!state.coordinates || state.coordinates.error) { state.coordinates = { error: "Не удалось получить GPS" }; displayCoords.className = "geo-status-badge geo-error"; displayCoords.innerText = "Слабый сигнал. Ищем дальше..."; saveDraft(); } },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+    gpsTimeoutId = setTimeout(() => {
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      state.gpsLocked = true; saveDraft();
+      if (state.coordinates && !state.coordinates.error) { displayCoords.className = "geo-status-badge geo-success"; displayCoords.innerText = `${state.coordinates.lat.toFixed(6)}, ${state.coordinates.lng.toFixed(6)} (~${Math.round(state.coordinates.acc)}м) - Зафиксировано`; } else { displayCoords.className = "geo-status-badge geo-error"; displayCoords.innerText = "Спутники не найдены"; }
+    }, 20000);
+  }
+
+  window.addEventListener('online', () => { syncStatus.classList.add('hidden'); syncPendingRecords(); });
+  window.addEventListener('offline', () => { syncStatus.classList.remove('hidden'); });
+
+  document.getElementById('cityName').addEventListener('change', (e) => { state.cityName = e.target.value; saveDraft(); updateMainValidation(); });
+  ['address', 'installerName', 'consumerName'].forEach(id => { document.getElementById(id).addEventListener('input', (e) => { state[id] = e.target.value.trim(); saveDraft(); updateMainValidation(); }); });
+  document.getElementById('meterModel').addEventListener('change', (e) => { state.meterModel = e.target.value; saveDraft(); updateMainValidation(); });
+  document.querySelectorAll('input[name="uirg"]').forEach(radio => { radio.addEventListener('change', (e) => { state.uirgLocation = e.target.value; saveDraft(); updateMainValidation(); }); });
+
+  document.getElementById('reportComment').addEventListener('input', (e) => { state.comment = e.target.value; saveDraft(); });
+
+  const accInput = document.getElementById('accountNumber'); const noAccCb = document.getElementById('noAccountCb');
+  noAccCb.addEventListener('change', (e) => { if (e.target.checked) { accInput.value = "Нет"; state.accountNumber = "Нет"; } else { accInput.value = ""; state.accountNumber = ""; } saveDraft(); updateMainValidation(); });
+  accInput.addEventListener('input', (e) => { state.accountNumber = e.target.value.trim(); if (state.accountNumber !== "Нет") noAccCb.checked = false; saveDraft(); updateMainValidation(); });
+
+  let html5QrCode = null;
+  let torchOn = false;
+
+  function startWebScanner(onSuccess) {
+    const modal = document.getElementById('scannerModal'); 
+    modal.style.display = 'flex';
+    
+    // Сброс фонарика при открытии
+    torchOn = false;
+    const torchBtn = document.getElementById('torchBtn');
+    torchBtn.style.background = '';
+    torchBtn.style.color = '';
+
+    if (!html5QrCode) { html5QrCode = new Html5Qrcode("reader"); }
+    
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { 
+        fps: 15, 
+        qrbox: { width: 300, height: 200 }, 
+        videoConstraints: { 
+          facingMode: "environment", 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 },
+          advanced: [{ zoom: 1.5 }] 
+        },
+        formatsToSupport: [ 
+          Html5QrcodeSupportedFormats.CODE_128, 
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.QR_CODE 
+        ] 
+      },
+      (decodedText, decodedResult) => { stopWebScanner(); onSuccess(decodedText); },
+      (errorMessage) => { }
+    ).catch((err) => { alert("Не удалось запустить камеру. Проверьте разрешения."); stopWebScanner(); });
+  }
+  
+  function stopWebScanner() { 
+      const modal = document.getElementById('scannerModal'); 
+      if (html5QrCode && html5QrCode.isScanning) { 
+          html5QrCode.stop().then(() => { modal.style.display = 'none'; }).catch(() => { modal.style.display = 'none'; }); 
+      } else { 
+          modal.style.display = 'none'; 
+      } 
+  }
+  
+  document.getElementById('scannerModalClose').addEventListener('click', stopWebScanner);
+
+  // Управление фонариком
+  document.getElementById('torchBtn').addEventListener('click', async () => {
+    if (html5QrCode && html5QrCode.getState() === Html5QrcodeScannerState.SCANNING) {
+      try {
+        torchOn = !torchOn;
+        await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+        const btn = document.getElementById('torchBtn');
+        btn.style.background = torchOn ? '#2b7a4b' : '';
+        btn.style.color = torchOn ? 'white' : '';
+      } catch (err) {
+        alert("Фонарик не поддерживается на этой камере или устройстве.");
+        torchOn = !torchOn;
+      }
+    }
+  });
+
+  const allOldMeterModels = [
+    "СГМН-1 G6", "СГМН-1М1-G6", "СГМН-МТ1-G6", "BK-G1,6", "BK-G2,5", "BK-G4", "BK-G4T",
+    "BK-G6", "BK-G6T", "BK-G6MT", "ВКР-G4T", "G2.5 \"ОМЕГА\"-м", "G4 \"ОМЕГА\"-м", "G6 \"ОМЕГА\"-м",
+    "GS-76-016A", "G ETC мод. GS-76-016A", "GS-80-025B", "GS-84-04C", "GS-84-06C", "Вектор G4",
+    "Вектор-Т G4", "Вектор-Т G6", "ВЕКТОР-М G1,6", "Гранд-1,6", "Гранд-3,2", "Гранд-4",
+    "Гранд-4ТК", "Гранд-6ТК", "Гранд-10ТК", "Гранд-SPI-10", "MKM G2.5", "MKM G6",
+    "Novator G2,5 РЛ", "Novator G4 РЛ", "Novator G6 РЛ", "Si-G4", "Бетар СГБМ-1.6",
+    "Бетар СГБМ-1,6М", "Бетар СГБМ-3.2", "СГБ-1.8", "СГБ G2,5", "СГБ G2,5 Сигнал", "СГБ G4-1",
+    "СГБ G4 Сигнал", "СГБ Смарт G4-1", "СГБ Смарт G6", "СГБЭТ G4-1", "СГБЭТ G6 \"Pegas\"",
+    "СГД G4", "СГД G4 ТК", "СГД G6", "СГД G6 ТК", "СГД-3Т G6", "СГД Smart-G4 МТК GSM",
+    "СГДК-G10", "СГДК-G10 ТК", "СГ-СГК-1,6", "СГК-1,6", "СГК-G1,6", "СГК-4", "СГК-4-1",
+    "СГК G4 Сигнал", "СГК-G4", "СГМБ-1.6", "СГМБ-2.4", "СГМБ-3.2", "СГМБ-4", "СГМБ-4 ТК",
+    "СГМБ-4 GSM", "СГУ-G4", "СМТ-Смарт G4", "СМТ-Смарт G6", "СМТ-Смарт G10"
+  ];
+
+  let onModelSelectCallback = null;
+  const modelSearchModal = document.getElementById('modelSearchModal');
+  const modelSearchInput = document.getElementById('modelSearchInput');
+  const modelListContainer = document.getElementById('modelListContainer');
+
+  function renderModelList(filterText = '') {
+      modelListContainer.innerHTML = '';
+      const lowerFilter = filterText.toLowerCase();
+      const filtered = allOldMeterModels.filter(m => m.toLowerCase().includes(lowerFilter));
+      
+      if (filtered.length === 0) {
+          modelListContainer.innerHTML = '<div style="padding: 12px; color: #64748b; text-align: center;">Ничего не найдено</div>';
+          return;
+      }
+
+      filtered.forEach(m => {
+          const div = document.createElement('div');
+          div.innerText = m;
+          div.style.padding = '12px 16px';
+          div.style.background = '#f8fafc';
+          div.style.borderRadius = '10px';
+          div.style.border = '1px solid #cbd5e1';
+          div.style.cursor = 'pointer';
+          div.style.fontSize = '0.95rem';
+          div.onclick = () => {
+              if (onModelSelectCallback) onModelSelectCallback(m);
+              modelSearchModal.style.display = 'none';
+          };
+          modelListContainer.appendChild(div);
+      });
+  }
+
+  function openModelSearchModal(cb) {
+      onModelSelectCallback = cb;
+      modelSearchInput.value = '';
+      renderModelList();
+      modelSearchModal.style.display = 'flex';
+      setTimeout(() => modelSearchInput.focus(), 100);
+  }
+
+  document.getElementById('closeModelSearchBtn').addEventListener('click', () => {
+      modelSearchModal.style.display = 'none';
+  });
+
+  modelSearchInput.addEventListener('input', (e) => {
+      renderModelList(e.target.value);
+  });
+
+  function renderChecklist() {
+    const fragment = document.createDocumentFragment();
+    
+    const group1 = document.createElement('div'); group1.className = 'card';
+    group1.innerHTML = '<h2>▶ Общие фото объекта</h2><div class="photo-grid"></div>';
+    
+    const group2 = document.createElement('div'); group2.className = 'card';
+    group2.innerHTML = '<h2>▶ Демонтаж (Старый счетчик)</h2><div class="photo-grid"></div>';
+    
+    const group3 = document.createElement('div'); group3.className = 'card';
+    group3.innerHTML = '<h2>▶ Монтаж (Новый счетчик)</h2><div class="photo-grid"></div>';
+    
+    fragment.appendChild(group1);
+    fragment.appendChild(group2);
+    fragment.appendChild(group3);
+
+    mandatoryConfig.forEach((cfg, idx) => {
+      const isOldMeterCfg = [2, 3, 4, 5, 6].includes(idx);
+      const isMandatory = !(cfg.conditionalMandatory && state.uirgLocation !== 'Улица');
+
+      const item = document.createElement('div'); item.className = 'photo-item';
+      
+      if (state.noOldMeter && isOldMeterCfg) {
+        if (idx !== 2) {
+          item.style.opacity = '0.4';
+          item.style.pointerEvents = 'none';
+          item.style.filter = 'grayscale(100%)';
+        }
+      }
+
+      let totalPhotos = state.photos[idx].length;
+      let metaHtml = '';
+      if (totalPhotos > 0) {
+          metaHtml = `<div class="photo-meta">Файлов: ${totalPhotos}</div>`;
+      } else {
+          if (isMandatory) {
+              metaHtml = `<div class="photo-meta" style="color:#ef4444;">Нет файлов *</div>`;
+          } else {
+              metaHtml = `<div class="photo-meta" style="color:#64748b;">Необязательно</div>`;
+          }
+      }
+
+      const headerDiv = document.createElement('div'); headerDiv.className = 'photo-header';
+      headerDiv.innerHTML = `<div><div class="photo-title">${cfg.title}</div>${metaHtml}</div>`;
+      item.appendChild(headerDiv);
+
+      if (idx === 2) {
+        const noMeterDiv = document.createElement('div');
+        noMeterDiv.style.marginBottom = '8px';
+        noMeterDiv.innerHTML = `<label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 500; color: #ef4444; cursor: pointer;">
+          <input type="checkbox" style="width: 18px; height: 18px; accent-color: #ef4444;" ${state.noOldMeter ? 'checked' : ''}>
+          Счетчик на объекте отсутствует
+        </label>`;
+        noMeterDiv.querySelector('input').addEventListener('change', (e) => {
+          state.noOldMeter = e.target.checked;
+          saveDraft(); renderChecklist(); validateForm();
+        });
+        item.appendChild(noMeterDiv);
+      }
+
+      const disabledAttr = (state.noOldMeter && isOldMeterCfg) ? 'disabled' : '';
+
+      if (cfg.hasOldModelInput) {
+        const inputDiv = document.createElement('div'); 
+        inputDiv.className = 'dynamic-input-row';
+        
+        let currentModel = state.oldMeterModel;
+        const isKnownModel = allOldMeterModels.includes(currentModel);
+
+        let inputClass = (state.noOldMeter) ? 'neutral-border' : (currentModel ? 'valid' : '');
+        let btnText = isKnownModel ? currentModel : 'Выбрать...';
+
+        inputDiv.innerHTML = `<input type="text" placeholder="Модель" value="${currentModel}" class="${inputClass}" ${disabledAttr}>
+          <button type="button" class="model-select-btn ${inputClass}" ${disabledAttr}>
+            <span>${btnText}</span>
+            <span>▾</span>
+          </button>`;
+        
+        const inputField = inputDiv.querySelector('input'); 
+        const btnField = inputDiv.querySelector('.model-select-btn');
+        
+        inputField.addEventListener('input', (e) => { 
+          let val = e.target.value.trim(); state.oldMeterModel = val;
+          inputField.classList.toggle('valid', val !== ''); 
+          if (allOldMeterModels.includes(val)) { 
+              btnField.querySelector('span').innerText = val; 
+          } else { 
+              btnField.querySelector('span').innerText = 'Выбрать...'; 
+          }
+          btnField.classList.toggle('valid', val !== ''); 
+          saveDraft(); validateForm(); 
+        });
+        
+        btnField.addEventListener('click', () => { 
+            openModelSearchModal((val) => { 
+                inputField.value = val; state.oldMeterModel = val;
+                inputField.classList.add('valid'); btnField.classList.add('valid'); 
+                btnField.querySelector('span').innerText = val;
+                saveDraft(); validateForm(); 
+            }); 
+        });
+        item.appendChild(inputDiv);
+      }
+
+      // ЛОГИКА ДЛЯ ПРОПУСКА ЗАВОДСКОГО НОМЕРА
+      if (cfg.hasOldSerialAndReadings) {
+        let isUnreadable = state.oldMeterSerial === 'Нечитаемый';
+        let inputClassS = state.noOldMeter ? 'neutral-border' : ((state.oldMeterSerial || isUnreadable) ? 'valid' : '');
+        let inputClassR = state.noOldMeter ? 'neutral-border' : (state.oldMeterReadings ? 'valid' : '');
+        let displayVal = isUnreadable ? '' : state.oldMeterSerial;
+
+        const inputDiv = document.createElement('div');
+        inputDiv.innerHTML = `
+          <div class="dynamic-input-row" style="margin-bottom: 8px;">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Заводской №" value="${displayVal}" class="${inputClassS}" ${disabledAttr || isUnreadable ? 'disabled' : ''}>
+              <label class="no-account-label" style="${disabledAttr ? 'opacity:0.5; pointer-events:none;' : ''}">
+                <input type="checkbox" id="unreadableSerialCb" ${isUnreadable ? 'checked' : ''} ${disabledAttr}> № нечитаемый
+              </label>
+          </div>
+          <input type="text" inputmode="decimal" placeholder="Показания" value="${state.oldMeterReadings}" class="${inputClassR}" style="width: 100%; padding: 8px 12px; margin-bottom: 8px; border-radius: 10px; font-size: 0.9rem;" ${disabledAttr}>`;
+        
+        const inputs = inputDiv.querySelectorAll('input[type="text"]');
+        const cb = inputDiv.querySelector('#unreadableSerialCb');
+
+        inputs[0].addEventListener('input', (e) => { 
+          state.oldMeterSerial=e.target.value.trim(); e.target.classList.toggle('valid', state.oldMeterSerial !== ''); saveDraft(); validateForm(); 
+        });
+        
+        cb.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.oldMeterSerial = 'Нечитаемый';
+            } else {
+                state.oldMeterSerial = '';
+            }
+            saveDraft();
+            renderChecklist();
+        });
+
+        inputs[1].addEventListener('input', (e) => { 
+          state.oldMeterReadings=e.target.value.trim(); e.target.classList.toggle('valid', state.oldMeterReadings !== ''); saveDraft(); validateForm(); 
+        });
+        item.appendChild(inputDiv);
+      }
+
+      if (cfg.hasInput && isOldMeterCfg) { 
+        let inputClass = state.noOldMeter ? 'neutral-border' : (state.controllerSeal ? 'valid' : '');
+
+        const inputDiv = document.createElement('div'); 
+        inputDiv.className = 'dynamic-input-row';
+        inputDiv.innerHTML = `<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Введите номер пломбы" value="${state.controllerSeal}" class="${inputClass}" ${disabledAttr}>
+          <label class="no-account-label">
+            <input type="checkbox" ${disabledAttr}> Нет
+          </label>`;
+        
+        const inputField = inputDiv.querySelector('input[type="text"]'); const checkbox = inputDiv.querySelector('input[type="checkbox"]');
+        if (state.controllerSeal === "Нет") { checkbox.checked = true; }
+        
+        inputField.addEventListener('input', (e) => { 
+          state.controllerSeal=e.target.value.trim();
+          if(state.controllerSeal !== "Нет") checkbox.checked = false; 
+          inputField.classList.toggle('valid', state.controllerSeal !== ''); saveDraft(); validateForm(); 
+        });
+        checkbox.addEventListener('change', (e) => { 
+          state.controllerSeal = e.target.checked ? "Нет" : ""; inputField.value = state.controllerSeal;
+          inputField.classList.toggle('valid', state.controllerSeal !== ''); saveDraft(); validateForm(); 
+        });
+        item.appendChild(inputDiv);
+      }
+
+      if (cfg.hasSerialInput && !isOldMeterCfg) {
+        const inputDiv = document.createElement('div'); 
+        inputDiv.className = 'dynamic-input-row';
+        inputDiv.innerHTML = `<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Заводской №" value="${state.serialNumber || ''}" class="${state.serialNumber ? 'valid' : ''}">
+          <button class="scan-btn scan-mini-btn" type="button" aria-label="Сканировать">📷</button>`;
+        const inputField = inputDiv.querySelector('input');
+        inputField.addEventListener('input', (e) => { state.serialNumber = e.target.value.trim(); e.target.classList.toggle('valid', state.serialNumber !== ''); saveDraft(); validateForm(); });
+        inputDiv.querySelector('.scan-btn').addEventListener('click', () => { 
+          startWebScanner((resultText) => { 
+            let parsedText = resultText.split(';')[0]; 
+            inputField.value = parsedText; 
+            state.serialNumber = parsedText; 
+            inputField.classList.add('valid'); 
+            saveDraft(); 
+            validateForm(); 
+          }); 
+        });
+        item.appendChild(inputDiv);
+      }
+
+      if (cfg.hasDirectionInput && !isOldMeterCfg) {
+        const inputDiv = document.createElement('div'); inputDiv.className = `radio-wrapper ${state.newGasDirection ? 'valid' : ''}`; inputDiv.style.marginBottom = '8px';
+        inputDiv.innerHTML = `<div class="radio-grid">
+            <label class="radio-card"><input type="radio" name="newGasDir" value="сверху-вниз" ${state.newGasDirection==='сверху-вниз'?'checked':''}> ⬇️</label> <label class="radio-card"><input type="radio" name="newGasDir" value="снизу-вверх" ${state.newGasDirection==='снизу-вверх'?'checked':''}> ⬆️</label> <label class="radio-card"><input type="radio" name="newGasDir" value="справа-налево" ${state.newGasDirection==='справа-налево'?'checked':''}> ⬅️</label> <label class="radio-card"><input type="radio" name="newGasDir" value="слева-направо" ${state.newGasDirection==='слева-направо'?'checked':''}> ➡️</label>
+          </div>`;
+        inputDiv.querySelectorAll('input[type="radio"]').forEach(radio => { radio.addEventListener('change', (e) => { state.newGasDirection = e.target.value; inputDiv.classList.add('valid'); saveDraft(); validateForm(); }); });
+        item.appendChild(inputDiv);
+      }
+
+      if (cfg.hasSimInput) {
+        const inputDiv = document.createElement('div'); 
+        inputDiv.className = 'dynamic-input-row';
+        inputDiv.innerHTML = `<input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Введите № SIM-карты" value="${state.simCardNumber || ''}" class="${state.simCardNumber ? 'valid' : ''}">
+          <button class="scan-btn scan-mini-btn" type="button" aria-label="Сканировать">📷</button>`;
+        const inputField = inputDiv.querySelector('input');
+        inputField.addEventListener('input', (e) => { state.simCardNumber = e.target.value.trim(); e.target.classList.toggle('valid', state.simCardNumber !== ''); saveDraft(); validateForm(); });
+        inputDiv.querySelector('.scan-btn').addEventListener('click', () => { startWebScanner((resultText) => { inputField.value = resultText; state.simCardNumber = resultText; inputField.classList.add('valid'); saveDraft(); validateForm(); }); });
+        item.appendChild(inputDiv);
+      }
+
+      const mediaRow = document.createElement('div'); mediaRow.className = 'media-row';
+      const pArray = state.photos[idx];
+      
+      let btnClasses = 'add-photo-placeholder';
+      if (pArray && pArray.length > 0) {
+          btnClasses += ' has-photos';
+      } else if (!isMandatory || (state.noOldMeter && isOldMeterCfg && idx !== 2)) {
+          btnClasses += ' optional';
+      }
+      
+      const placeholder = document.createElement('div'); 
+      placeholder.className = btnClasses;
+      placeholder.innerHTML = `<span>➕</span>Добавить`; 
+      if (state.noOldMeter && isOldMeterCfg && idx !== 2) {
+          placeholder.style.opacity = '0.5';
+          placeholder.style.pointerEvents = 'none';
+      } else {
+          placeholder.onclick = () => { state.currentActiveIndex = idx; state.currentActiveMeter = 1; globalFileInput.click(); }; 
+      }
+      mediaRow.appendChild(placeholder);
+      
+      if (pArray) {
+          pArray.forEach((pData, pIdx) => {
+            const pContainer = document.createElement('div'); pContainer.className = 'photo-container';
+            const img = document.createElement('img'); img.src = pData.dataUrl; img.className = 'thumbnail'; img.onclick = (e) => { e.stopPropagation(); openLightbox(pData.dataUrl); };
+            const delBtn = document.createElement('button'); delBtn.className = 'delete-btn'; delBtn.innerHTML = '&times;'; delBtn.onclick = (e) => { e.stopPropagation(); removePhoto(idx, pIdx, 1); };
+            pContainer.appendChild(img); pContainer.appendChild(delBtn); mediaRow.appendChild(pContainer);
+          });
+      }
+      item.appendChild(mediaRow); 
+
+      let targetGrid;
+      if (idx === 0 || idx === 1) targetGrid = group1.querySelector('.photo-grid');
+      else if (idx >= 2 && idx <= 6) targetGrid = group2.querySelector('.photo-grid');
+      else targetGrid = group3.querySelector('.photo-grid');
+      
+      targetGrid.appendChild(item);
+
+    });
+
+    mandatoryListContainer.innerHTML = '';
+    mandatoryListContainer.appendChild(fragment);
+    validateForm();
+  }
+
+  globalFileInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files), idx = state.currentActiveIndex, m = state.currentActiveMeter || 1; 
+    if (files.length === 0 || idx === null) return;
+    let processedCount = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas'); let width = img.width, height = img.height;
+          const MAX_SIDE = 1280; 
+          if (width > MAX_SIDE || height > MAX_SIDE) { if (width > height) { height *= MAX_SIDE / width; width = MAX_SIDE; } else { width *= MAX_SIDE / height; height = MAX_SIDE; } }
+          canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+          if (m === 1) state.photos[idx].push({ dataUrl: dataUrl, timestamp: new Date().toISOString() }); 
+          else if (m === 2) state.photos2[idx].push({ dataUrl: dataUrl, timestamp: new Date().toISOString() }); 
+          else if (m === 3) state.photos3[idx].push({ dataUrl: dataUrl, timestamp: new Date().toISOString() }); 
+          processedCount++; 
+          if (processedCount === files.length) { saveDraft(); renderChecklist(); }
+        }; img.src = event.target.result;
+      }; reader.readAsDataURL(file);
+    }); globalFileInput.value = '';
+  });
+
+  function removePhoto(configIdx, photoIdx, m = 1) { 
+      if (m === 1) state.photos[configIdx].splice(photoIdx, 1); 
+      else if (m === 2) state.photos2[configIdx].splice(photoIdx, 1); 
+      else if (m === 3) state.photos3[configIdx].splice(photoIdx, 1); 
+      renderChecklist(); 
+      saveDraft(); validateForm(); 
+  }
+  
+  function validateForm() { 
+    const allPhotosExist = mandatoryConfig.every((cfg, i) => {
+        const isOldMeterCfg = [2, 3, 4, 5, 6].includes(i);
+        if (state.noOldMeter && isOldMeterCfg) return true;
+        if (cfg.conditionalMandatory && state.uirgLocation !== 'Улица') return true;
+        
+        if (isOldMeterCfg) {
+            return state.photos[i].length > 0;
+        } else {
+            return state.photos[i].length > 0;
+        }
+    });
+
+    let m1 = true, m2 = true, m3 = true, m4 = true;
+    if (!state.noOldMeter) {
+        m1 = state.oldMeterModel !== ''; m2 = state.oldMeterSerial !== ''; m3 = state.oldMeterReadings !== ''; m4 = state.controllerSeal !== ''; 
+    }
+
+    const m5 = state.serialNumber !== ''; const m6 = state.newGasDirection !== ''; const m7 = state.simCardNumber !== '';
+    generateBtn.disabled = !(allPhotosExist && m1 && m2 && m3 && m4 && m5 && m6 && m7); 
+  }
+
+  function buildEmailBodyText() {
+    const gps = (state.coordinates && !state.coordinates.error) ? `${state.coordinates.lat.toFixed(6)}, ${state.coordinates.lng.toFixed(6)}` : 'Не определены';
+    const datetime = formatDateTime(state.creationDate); 
+    
+    const appVersionText = document.querySelector('footer') ? document.querySelector('footer').innerText : 'Версия 2.6.0';
+    
+    let oldMeterText = "";
+    for(let m=1; m<=state.oldMeterCount; m++) {
+        let oM = m===1 ? state.oldMeterModel : (m===2 ? state.oldMeterModel2 : state.oldMeterModel3);
+        let oS = m===1 ? state.oldMeterSerial : (m===2 ? state.oldMeterSerial2 : state.oldMeterSerial3);
+        let oR = m===1 ? state.oldMeterReadings : (m===2 ? state.oldMeterReadings2 : state.oldMeterReadings3);
+        let cS = m===1 ? state.controllerSeal : (m===2 ? state.controllerSeal2 : state.controllerSeal3);
+        
+        let fm = state.noOldMeter ? 'Нет счетчика' : (oM || 'нет');
+        let fs = state.noOldMeter ? 'Нет счетчика' : (oS || 'нет');
+        let fr = state.noOldMeter ? 'Нет счетчика' : (oR || 'нет');
+        let fc = state.noOldMeter ? 'Нет счетчика' : (cS || 'Нет');
+        
+        let prefix = state.oldMeterCount > 1 ? `[Старый счетчик №${m}]\n` : "";
+        oldMeterText += `${prefix}• Модель старого: ${fm}\n• № старого: ${fs}\n• Показания старого: ${fr}\n• Пломба: ${fc}\n`;
+        if (m < state.oldMeterCount) oldMeterText += "--------------------\n";
+    }
+
+    let text = `• Объект: Частный дом\n• Город: ${state.cityName || 'не указан'}\n• Адрес: ${state.address}\n• Расположение: ${state.uirgLocation || 'не указано'}\n• GPS: ${gps}\n• Потребитель: ${state.consumerName}\n• ЛС: ${state.accountNumber}\n--------------------\n${oldMeterText}--------------------\n• Модель нового: ${state.meterModel}\n• № нового: ${state.serialNumber}\n• Направление: ${state.newGasDirection || 'нет'}\n• SIM: ${state.simCardNumber || 'нет'}\n--------------------\n• Комментарий: ${state.comment || 'нет'}\n--------------------\n• Монтажник: ${state.installerName}\n• Дата: ${datetime}\n--------------------\n• ${appVersionText}`;
+    return text;
+  }
+
+  generateBtn.addEventListener('click', async () => {
+    generateBtn.innerText = "⏳ Сборка архива..."; generateBtn.disabled = true;
+    const emailBodyText = buildEmailBodyText();
+    try {
+      const filesToPack = [];
+      
+      mandatoryConfig.forEach((cfg, idx) => {
+        const isOldMeterCfg = [2, 3, 4, 5, 6].includes(idx);
+        state.photos[idx].forEach((pData, pIdx) => { 
+            let pName = state.photos[idx].length === 1 ? `${cfg.prefix}.jpg` : `${cfg.prefix}_${pIdx + 1}.jpg`;
+            if (isOldMeterCfg && state.oldMeterCount > 1) pName = `${cfg.prefix}_m1_${pIdx + 1}.jpg`;
+            filesToPack.push({ name: pName, blob: dataURItoUint8Array(pData.dataUrl) }); 
+        });
+
+        if (isOldMeterCfg && state.oldMeterCount >= 2) {
+            state.photos2[idx].forEach((pData, pIdx) => { 
+                filesToPack.push({ name: `${cfg.prefix}_m2_${pIdx + 1}.jpg`, blob: dataURItoUint8Array(pData.dataUrl) }); 
+            });
+        }
+        if (isOldMeterCfg && state.oldMeterCount >= 3) {
+            state.photos3[idx].forEach((pData, pIdx) => { 
+                filesToPack.push({ name: `${cfg.prefix}_m3_${pIdx + 1}.jpg`, blob: dataURItoUint8Array(pData.dataUrl) }); 
+            });
+        }
+      });
+      
+      filesToPack.unshift({ name: 'report_info.txt', blob: new TextEncoder().encode(emailBodyText) });
+      if (state.signatureDataUrl) { filesToPack.push({ name: 'signature.png', blob: dataURItoUint8Array(state.signatureDataUrl) }); }
+
+      let fileData = [], centralDir = [], offset = 0; const encoder = new TextEncoder();
+      
+      for (let i = 0; i < filesToPack.length; i++) {
+        const file = filesToPack[i]; 
+        generateBtn.innerText = `⏳ Упаковка: ${i + 1}/${filesToPack.length}...`; 
+        await new Promise(r => setTimeout(r, 10));
+        
+        const nameBytes = encoder.encode(file.name); 
+        const bodyBytes = file.blob;
+        
+        let crc = 0xFFFFFFFF; 
+        for (let b = 0; b < bodyBytes.length; b++) { 
+            crc ^= bodyBytes[b]; 
+            for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0); 
+        } 
+        crc ^= 0xFFFFFFFF;
+        
+        const lfh = new Uint8Array(30 + nameBytes.length); 
+        lfh.set([0x50, 0x4B, 0x03, 0x04, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, crc & 0xFF, (crc >>> 8) & 0xFF, (crc >>> 16) & 0xFF, (crc >>> 24) & 0xFF, bodyBytes.length & 0xFF, (bodyBytes.length >>> 8) & 0xFF, (bodyBytes.length >>> 16) & 0xFF, (bodyBytes.length >>> 24) & 0xFF, bodyBytes.length & 0xFF, (bodyBytes.length >>> 8) & 0xFF, (bodyBytes.length >>> 16) & 0xFF, (bodyBytes.length >>> 24) & 0xFF, nameBytes.length & 0xFF, (nameBytes.length >>> 8) & 0xFF, 0, 0]); 
+        lfh.set(nameBytes, 30); 
+        fileData.push(lfh, bodyBytes);
+        
+        const cdh = new Uint8Array(46 + nameBytes.length); 
+        cdh.set([0x50, 0x4B, 0x01, 0x02, 20, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, crc & 0xFF, (crc >>> 8) & 0xFF, (crc >>> 16) & 0xFF, (crc >>> 24) & 0xFF, bodyBytes.length & 0xFF, (bodyBytes.length >>> 8) & 0xFF, (bodyBytes.length >>> 16) & 0xFF, (bodyBytes.length >>> 24) & 0xFF, bodyBytes.length & 0xFF, (bodyBytes.length >>> 8) & 0xFF, (bodyBytes.length >>> 16) & 0xFF, (bodyBytes.length >>> 24) & 0xFF, nameBytes.length & 0xFF, (nameBytes.length >>> 8) & 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, offset & 0xFF, (offset >>> 8) & 0xFF, (offset >>> 16) & 0xFF, (offset >>> 24) & 0xFF]); 
+        cdh.set(nameBytes, 46); 
+        centralDir.push(cdh); 
+        offset += lfh.length + bodyBytes.length;
+      }
+      
+      let cdLen = centralDir.reduce((a, b) => a + b.length, 0); 
+      const eocd = new Uint8Array(22); 
+      eocd.set([0x50, 0x4B, 0x05, 0x06, 0, 0, 0, 0, filesToPack.length & 0xFF, (filesToPack.length >>> 8) & 0xFF, filesToPack.length & 0xFF, (filesToPack.length >>> 8) & 0xFF, cdLen & 0xFF, (cdLen >>> 8) & 0xFF, (cdLen >>> 16) & 0xFF, (cdLen >>> 24) & 0xFF, offset & 0xFF, (offset >>> 8) & 0xFF, (offset >>> 16) & 0xFF, (offset >>> 24) & 0xFF, 0, 0]);
+      
+      const finalZipUint8 = new Uint8Array(offset + cdLen + 22); 
+      let currentPos = 0; 
+      
+      fileData.forEach(part => { finalZipUint8.set(part, currentPos); currentPos += part.length; }); 
+      centralDir.forEach(part => { finalZipUint8.set(part, currentPos); currentPos += part.length; }); 
+      finalZipUint8.set(eocd, currentPos);
+      
+      const d = new Date(state.creationDate); const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      let sanitizedSerial = state.serialNumber.replace(/[^a-zа-яё0-9]/gi, '_').substring(0, 24);
+      currentZipName = `${sanitizedSerial}_${dateStr}.zip`;
+
+      const fbReportData = { 
+        objectName: "Частный дом",
+        city: state.cityName || "",
+        address: state.address || "", 
+        uirgLocation: state.uirgLocation || "", 
+        installer: state.installerName || "", 
+        serial: state.serialNumber || "", 
+        model: state.meterModel || "", 
+        consumer: state.consumerName || "", 
+        ls: state.accountNumber || "", 
+        
+        oldMeterCount: state.oldMeterCount,
+        oldMeterModel: state.noOldMeter ? "Нет счетчика" : (state.oldMeterModel || ""), 
+        oldMeterSerial: state.noOldMeter ? "Нет счетчика" : (state.oldMeterSerial || ""), 
+        oldMeterReadings: state.noOldMeter ? "Нет счетчика" : (state.oldMeterReadings || ""), 
+        controllerSeal: state.noOldMeter ? "Нет счетчика" : (state.controllerSeal || ""), 
+        
+        oldMeterModel2: (state.noOldMeter || state.oldMeterCount < 2) ? "Нет счетчика" : (state.oldMeterModel2 || ""), 
+        oldMeterSerial2: (state.noOldMeter || state.oldMeterCount < 2) ? "Нет счетчика" : (state.oldMeterSerial2 || ""), 
+        oldMeterReadings2: (state.noOldMeter || state.oldMeterCount < 2) ? "Нет счетчика" : (state.oldMeterReadings2 || ""), 
+        controllerSeal2: (state.noOldMeter || state.oldMeterCount < 2) ? "Нет счетчика" : (state.controllerSeal2 || ""), 
+        
+        oldMeterModel3: (state.noOldMeter || state.oldMeterCount < 3) ? "Нет счетчика" : (state.oldMeterModel3 || ""), 
+        oldMeterSerial3: (state.noOldMeter || state.oldMeterCount < 3) ? "Нет счетчика" : (state.oldMeterSerial3 || ""), 
+        oldMeterReadings3: (state.noOldMeter || state.oldMeterCount < 3) ? "Нет счетчика" : (state.oldMeterReadings3 || ""), 
+        controllerSeal3: (state.noOldMeter || state.oldMeterCount < 3) ? "Нет счетчика" : (state.controllerSeal3 || ""), 
+
+        newGasDirection: state.newGasDirection || "", 
+        simCardNumber: state.simCardNumber || "", 
+        comment: state.comment || "",
+        gps: (state.coordinates && !state.coordinates.error) ? `${state.coordinates.lat.toFixed(6)}, ${state.coordinates.lng.toFixed(6)}` : 'Нет', 
+        date: formatDateTime(state.creationDate), 
+        timestamp: Date.now() 
+      };
+
+      // НОВАЯ ЛОГИКА: Всегда сначала сохраняем данные в локальную память и только после успешного сохранения запускаем процесс синхронизации.
+      function saveAndSync(data) {
+        if (!db) return;
+        const tx = db.transaction("pending_sync", "readwrite");
+        tx.objectStore("pending_sync").add({ data: data });
+        tx.oncomplete = () => { 
+           syncPendingRecords(); 
+        };
+      }
+      
+      saveAndSync(fbReportData);
+
+      const base64Data = uint8ToBase64(finalZipUint8);
+      if (db) {
+        const tx = db.transaction("archives", "readwrite");
+        
+        tx.oncomplete = function() {
+          clearDraft();
+          generateBtn.innerText = "✓ Архив сохранен!";
+          savedFileNameSpan.innerText = currentZipName;
+          manualSendInstructions.classList.remove('hidden');
+          shareTextBtn.classList.remove('hidden');
+        };
+
+        tx.onerror = function(err) {
+          alert("Сбой записи в память. Проверьте свободное место на телефоне.");
+          resetGenBtn();
+        };
+        tx.onabort = function(err) {
+          alert("Сохранение прервано системой iOS.");
+          resetGenBtn();
+        };
+
+        tx.objectStore("archives").put({ 
+          name: currentZipName, 
+          base64: base64Data, 
+          text: emailBodyText, 
+          date: new Date().toISOString() 
+        });
+      } else {
+        alert("Локальная память браузера недоступна.");
+        resetGenBtn();
+      }
+    } catch (err) { alert("Сбой сборки: " + err.message); resetGenBtn(); }
+  });
+
+  function resetGenBtn() { generateBtn.innerText = "Сформировать архив"; generateBtn.disabled = false; }
+
+  shareTextBtn.addEventListener('click', () => {
+    const req = db.transaction("archives", "readonly").objectStore("archives").get(currentZipName);
+    req.onsuccess = (e) => {
+       const result = e.target.result;
+       if (result) { shareFiles([result], `Счетчик № ${state.serialNumber}`); }
+       else { alert("Файл не найден в базе."); }
+    };
+  });
+
+  document.getElementById('startReportBtn').addEventListener('click', () => {
+    state.cityName = document.getElementById('cityName').value || '';
+    state.address = document.getElementById('address').value.trim(); const uirgNode = document.querySelector('input[name="uirg"]:checked'); state.uirgLocation = uirgNode ? uirgNode.value : ''; state.installerName = document.getElementById('installerName').value.trim(); state.meterModel = document.getElementById('meterModel').value.trim(); state.consumerName = document.getElementById('consumerName').value.trim(); state.accountNumber = document.getElementById('accountNumber').value.trim();
+    if (!state.cityName || !state.address || !state.uirgLocation || !state.installerName || !state.meterModel || !state.consumerName || !state.accountNumber) { alert("Заполните ВСЕ обязательные поля, выделенные красной рамкой!"); updateMainValidation(); return; }
+    if (!state.signatureDataUrl) { alert("Потребитель должен поставить подпись!"); return; }
+    
+    safeSetLocal('installerName', state.installerName);
+    formScreen.classList.add('hidden'); checklistScreen.classList.remove('hidden');
+    if (!navigator.onLine) syncStatus.classList.remove('hidden');
+    state.creationDate = new Date().toISOString(); startActiveGeoSearch(); saveDraft(); renderChecklist();
+  });
+
+  function performReset() {
+    state.photos.forEach(arr => { arr.forEach(p => URL.revokeObjectURL(p.dataUrl)); });
+    state.photos2.forEach(arr => { arr.forEach(p => URL.revokeObjectURL(p.dataUrl)); });
+    state.photos3.forEach(arr => { arr.forEach(p => URL.revokeObjectURL(p.dataUrl)); });
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; } if (gpsTimeoutId !== null) { clearTimeout(gpsTimeoutId); gpsTimeoutId = null; }
+    state = { cityName: '', address: '', uirgLocation: '', installerName: safeGetLocal('installerName') || '', serialNumber: '', meterModel: '', consumerName: '', accountNumber: '', signatureDataUrl: '', controllerSeal: '', oldMeterCount: 1, oldMeterModel: '', oldMeterSerial: '', oldMeterReadings: '', oldMeterModel2: '', oldMeterSerial2: '', oldMeterReadings2: '', controllerSeal2: '', oldMeterModel3: '', oldMeterSerial3: '', oldMeterReadings3: '', controllerSeal3: '', newGasDirection: '', simCardNumber: '', noOldMeter: false, comment: '', coordinates: null, creationDate: null, gpsLocked: false, photos: Array.from({ length: mandatoryConfig.length }, () => []), photos2: Array.from({ length: mandatoryConfig.length }, () => []), photos3: Array.from({ length: mandatoryConfig.length }, () => []), currentActiveIndex: null, currentActiveMeter: 1 };
+    currentZipName = "";
+    document.getElementById('cityName').value = ''; document.getElementById('address').value = ''; document.getElementById('meterModel').value = ''; document.getElementById('consumerName').value = ''; document.getElementById('accountNumber').value = ''; document.getElementById('noAccountCb').checked = false; document.getElementById('reportComment').value = '';
+    document.querySelectorAll('input[name="uirg"]').forEach(r => r.checked = false);
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    clearDraft(); updateMainValidation();
+    manualSendInstructions.classList.add('hidden'); shareTextBtn.classList.add('hidden'); resetGenBtn(); checklistScreen.classList.add('hidden'); formScreen.classList.remove('hidden');
+  }
+
+  document.getElementById('goBackBtn').addEventListener('click', () => {
+    checklistScreen.classList.add('hidden');
+    formScreen.classList.remove('hidden');
+  });
+
+  document.getElementById('postponeReportBtn').addEventListener('click', () => {
+    if(!confirm('Отложить этот отчет? Вы сможете вернуться к нему позже на главном экране.')) return;
+    const postponedId = "postponed_" + Date.now();
+    const draftState = { ...state };
+    
+    if (db) {
+        const tx = db.transaction("drafts", "readwrite");
+        tx.objectStore("drafts").put({ id: postponedId, data: draftState });
+        tx.objectStore("drafts").delete("current");
+        tx.oncomplete = () => { performReset(); updatePostponedCount(); };
+    }
+  });
+
+  document.getElementById('openPostponedBtn').addEventListener('click', () => {
+    formScreen.classList.add('hidden');
+    document.getElementById('postponedScreen').classList.remove('hidden');
+    loadPostponedList();
+  });
+
+  document.getElementById('backFromPostponedBtn').addEventListener('click', () => {
+    document.getElementById('postponedScreen').classList.add('hidden');
+    formScreen.classList.remove('hidden');
+  });
+
+  function loadPostponedList() {
+    const container = document.getElementById('postponedListContainer');
+    container.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b;">Загрузка...</div>';
+    if (!db) return;
+    
+    const req = db.transaction("drafts", "readonly").objectStore("drafts").getAll();
+    req.onsuccess = (e) => {
+        const drafts = e.target.result.filter(d => d.id.toString().startsWith("postponed_"));
+        container.innerHTML = '';
+        
+        if(drafts.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b;">Нет отложенных отчетов</div>';
+            return;
+        }
+        
+        drafts.sort((a,b) => new Date(b.data.creationDate) - new Date(a.data.creationDate));
+        
+        drafts.forEach(draft => {
+            const item = document.createElement('div');
+            item.className = 'archive-item';
+            item.style.cursor = 'pointer';
+            
+            const dDate = new Date(draft.data.creationDate).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+            const addr = draft.data.address || 'Адрес не указан';
+            
+            item.innerHTML = `<div class="archive-info">
+                <div class="archive-name">${addr}</div>
+                <div style="font-size: 0.75rem; color: #2b7a4b; margin-top: 4px;">🕒 Отложен: ${dDate}</div>
+            </div>
+            <button class="danger-btn" style="width: 40px; height: 40px; padding:0; flex-shrink:0; border-radius:10px;" title="Удалить">❌</button>`;
+            
+            item.addEventListener('click', (ev) => {
+                if(ev.target.tagName === 'BUTTON' || ev.target.innerText === '❌') return;
+                resumePostponed(draft.id);
+            });
+            
+            item.querySelector('button').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                if(confirm('Точно удалить этот отложенный отчет навсегда?')) {
+                    db.transaction("drafts", "readwrite").objectStore("drafts").delete(draft.id).onsuccess = () => {
+                        loadPostponedList(); updatePostponedCount();
+                    };
+                }
+            });
+            container.appendChild(item);
+        });
+    }
+  }
+
+  function resumePostponed(postponedId) {
+    db.transaction("drafts", "readwrite").objectStore("drafts").get(postponedId).onsuccess = (e) => {
+        const result = e.target.result;
+        if(result && result.data) {
+            const tx = db.transaction("drafts", "readwrite");
+            tx.objectStore("drafts").put({ id: "current", data: result.data });
+            tx.objectStore("drafts").delete(postponedId);
+            tx.oncomplete = () => {
+                document.getElementById('postponedScreen').classList.add('hidden');
+                formScreen.classList.remove('hidden');
+                updatePostponedCount();
+                checkDraft();
+            };
+        }
+    };
+  }
+
+  document.getElementById('resetAllBtn').addEventListener('click', () => {
+    document.getElementById('confirmFinishModal').style.display = 'flex';
+  });
+
+  document.getElementById('cancelFinishBtn').addEventListener('click', () => {
+    document.getElementById('confirmFinishModal').style.display = 'none';
+  });
+
+  document.getElementById('confirmFinishBtn').addEventListener('click', () => {
+    document.getElementById('confirmFinishModal').style.display = 'none';
+    performReset();
+  });
+
+  document.getElementById('openArchivesBtn').addEventListener('click', () => { formScreen.classList.add('hidden'); archiveScreen.classList.remove('hidden'); loadArchives(); });
+  document.getElementById('backFromArchivesBtn').addEventListener('click', () => { archiveScreen.classList.add('hidden'); formScreen.classList.remove('hidden'); isMultiSelectMode = false; selectedArchives.clear(); multiActionBar.classList.add('hidden'); archiveListContainer.style.paddingBottom = "0px"; });
+
+  let savedArchives = []; let selectedArchives = new Set(); let isMultiSelectMode = false;
+
+  function loadArchives() {
+    archiveListContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b;">Загрузка архивов...</div>';
+    if (!db) { archiveListContainer.innerHTML = '<div style="text-align:center; padding: 20px;">Ошибка БД</div>'; return; }
+    db.transaction("archives", "readonly").objectStore("archives").getAll().onsuccess = (e) => {
+      savedArchives = e.target.result; savedArchives.sort((a, b) => b.date.localeCompare(a.date)); renderArchiveList();
+    };
+  }
+
+  function renderArchiveList() {
+    archiveListContainer.innerHTML = '';
+    if (savedArchives.length === 0) { 
+        archiveListContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748b;">Архивов пока нет.</div>'; 
+        multiActionBar.classList.add('hidden'); archiveListContainer.style.paddingBottom = "0px"; return; 
+    }
+    
+    savedArchives.forEach(archive => {
+      const item = document.createElement('div'); item.className = 'archive-item'; 
+      if (selectedArchives.has(archive.name)) item.classList.add('selected');
+      
+      const checkbox = document.createElement('div'); checkbox.className = 'archive-checkbox';
+      
+      const TWENTY_DAYS_MS = 20 * 24 * 60 * 60 * 1000;
+      const isProtected = archive.date ? (Date.now() - new Date(archive.date).getTime() < TWENTY_DAYS_MS) : false;
+      const badgeHtml = isProtected ? `<div style="font-size: 0.75rem; color: #ef4444; margin-top: 4px;">🔒 Удаление через 20 дней</div>` : ``;
+
+      const info = document.createElement('div'); info.className = 'archive-info'; 
+      info.innerHTML = `<div class="archive-name">${archive.name}</div>${badgeHtml}`;
+      
+      item.appendChild(checkbox); item.appendChild(info);
+      checkbox.addEventListener('click', (e) => { e.stopPropagation(); if (!isMultiSelectMode) isMultiSelectMode = true; toggleSelection(archive.name, item); });
+      item.addEventListener('click', () => { if (isMultiSelectMode) { toggleSelection(archive.name, item); } else { shareFiles([archive], "Отправка архива"); } });
+      let pressTimer; item.addEventListener('touchstart', () => { pressTimer = window.setTimeout(() => { if (!isMultiSelectMode) { isMultiSelectMode = true; toggleSelection(archive.name, item); renderArchiveList(); } }, 600); }, {passive: true}); item.addEventListener('touchend', () => clearTimeout(pressTimer));
+      archiveListContainer.appendChild(item);
+    });
+
+    if (isMultiSelectMode && selectedArchives.size > 0) { 
+      multiActionBar.classList.remove('hidden'); archiveListContainer.style.paddingBottom = "120px"; 
+      document.getElementById('multiSendBtn').innerText = `Отправить (${selectedArchives.size})`; 
+      
+      let canDeleteAll = true;
+      const TWENTY_DAYS_MS = 20 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      
+      selectedArchives.forEach(name => {
+          const arch = savedArchives.find(a => a.name === name);
+          if (arch && arch.date && (now - new Date(arch.date).getTime() < TWENTY_DAYS_MS)) {
+              canDeleteAll = false;
+          }
+      });
+
+      const delBtn = document.getElementById('multiDeleteBtn');
+      if (!canDeleteAll) {
+          delBtn.disabled = true;
+          delBtn.innerText = "Блок (<20 дн)";
+      } else {
+          delBtn.disabled = false;
+          delBtn.innerText = `Удалить (${selectedArchives.size})`;
+      }
+
+    } else { 
+      multiActionBar.classList.add('hidden'); archiveListContainer.style.paddingBottom = "0px"; 
+      if (selectedArchives.size === 0) isMultiSelectMode = false; 
+    }
+  }
+
+  function toggleSelection(name, itemElement) { if (selectedArchives.has(name)) { selectedArchives.delete(name); itemElement.classList.remove('selected'); } else { selectedArchives.add(name); itemElement.classList.add('selected'); } renderArchiveList(); }
+  document.getElementById('selectAllBtn').addEventListener('click', () => { savedArchives.forEach(a => selectedArchives.add(a.name)); renderArchiveList(); });
+  document.getElementById('deselectAllBtn').addEventListener('click', () => { selectedArchives.clear(); isMultiSelectMode = false; renderArchiveList(); });
+
+  async function shareFiles(filesDataArray, subjectText) {
+    const filesToShare = [];
+    filesDataArray.forEach(f => {
+      let fileBlob;
+      if (f.base64) {
+         fileBlob = new Blob([base64ToUint8(f.base64)], { type: "application/zip" });
+      } else if (f.data) {
+         fileBlob = new Blob([f.data], { type: "application/zip" });
+      } else {
+         fileBlob = f.blob;
+      }
+      filesToShare.push(new File([fileBlob], f.name, { type: "application/zip" }));
+    });
+
+    if (navigator.canShare && navigator.canShare({ files: filesToShare })) {
+      try {
+        let textMsg = filesDataArray.length === 1 ? filesDataArray[0].text : "Архивы фотоотчетов во вложении.";
+        await navigator.share({ files: filesToShare, title: subjectText, text: textMsg });
+        if (isMultiSelectMode) { selectedArchives.clear(); isMultiSelectMode = false; renderArchiveList(); } return;
+      } catch (err) {
+      }
+    } else {
+        filesDataArray.forEach(f => {
+          let fileBlob = f.base64 ? new Blob([base64ToUint8(f.base64)], { type: "application/zip" }) : (f.data ? new Blob([f.data], { type: "application/zip" }) : f.blob);
+          const link = document.createElement('a'); link.href = URL.createObjectURL(fileBlob); link.download = f.name; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        });
+        if (isMultiSelectMode) { selectedArchives.clear(); isMultiSelectMode = false; renderArchiveList(); }
+    }
+  }
+
+  function deleteFiles(namesArray) {
+    const TWENTY_DAYS_MS = 20 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    // Фильтруем архивы: удаляем только те, которым больше 20 дней
+    const toDelete = namesArray.filter(name => {
+      const arch = savedArchives.find(a => a.name === name);
+      if (!arch || !arch.date) return true; // Разрешаем удаление старых архивов без даты
+      return (now - new Date(arch.date).getTime() >= TWENTY_DAYS_MS);
+    });
+
+    if (toDelete.length === 0) {
+      alert("Выбранные архивы защищены от удаления (не прошло 20 дней).");
+      return;
+    }
+
+    let msg = `Удалить выбранные архивы (${toDelete.length} шт)?`;
+    if (toDelete.length < namesArray.length) {
+      msg = `Внимание: ${namesArray.length - toDelete.length} архив(ов) защищено (не прошло 20 дней).\nУдалить остальные (${toDelete.length} шт)?`;
+    }
+
+    if (confirm(msg)) {
+      const tx = db.transaction("archives", "readwrite"); const store = tx.objectStore("archives");
+      toDelete.forEach(name => store.delete(name));
+      tx.oncomplete = () => { selectedArchives.clear(); isMultiSelectMode = false; loadArchives(); };
+    }
+  }
+
+  document.getElementById('multiSendBtn').addEventListener('click', () => { let toShare = savedArchives.filter(a => selectedArchives.has(a.name)); shareFiles(toShare, "Множественная отправка"); });
+  document.getElementById('multiDeleteBtn').addEventListener('click', () => { deleteFiles(Array.from(selectedArchives)); });
+
+  const modal = document.getElementById('photoModal'), modalImg = document.getElementById('modalImg'), modalWrapper = document.getElementById('modalWrapper');
+  let scale = 1, startDist = 0, isDragging = false, startX = 0, startY = 0, posX = 0, posY = 0;
+  function openLightbox(url) { modalImg.src = url; modal.style.display = 'flex'; resetZoom(); }
+  function closeLightbox() { modal.style.display = 'none'; modalImg.src = ''; }
+  function resetZoom() { scale = 1; posX = 0; posY = 0; updateTransform(); }
+  function updateTransform() { modalWrapper.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`; }
+  document.getElementById('modalClose').addEventListener('click', closeLightbox);
+  modal.addEventListener('click', (e) => { if (e.target === modal || e.target === modalWrapper) closeLightbox(); });
+  modal.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); } else if (e.touches.length === 1 && scale > 1) { isDragging = true; startX = e.touches[0].pageX - posX; startY = e.touches[0].pageY - posY; } }, { passive: true });
+  modal.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && startDist > 0) { const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); scale = Math.min(Math.max(1, (dist / startDist)), 4); updateTransform(); } else if (e.touches.length === 1 && isDragging) { posX = e.touches[0].pageX - startX; posY = e.touches[0].pageY - startY; updateTransform(); } }, { passive: true });
+  modal.addEventListener('touchend', (e) => { if (e.touches.length < 2) startDist = 0; if (e.touches.length === 0) isDragging = false; });
+</script>
+
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="initFirebase()"></script>
+
+</body>
+</html>
